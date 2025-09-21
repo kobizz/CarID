@@ -1,0 +1,192 @@
+[MAIN]
+# Specify a configuration file
+# Use multiple processes to speed up Pylint
+jobs = 0
+
+# Allow loading of arbitrary C extensions
+unsafe-load-any-extension = no
+
+# Add files or directories to the blacklist
+ignore = venv,
+         __pycache__,
+         .git,
+         data,
+         *.egg-info
+
+# Add files or directories matching the regex patterns to the blacklist
+ignore-patterns = test_.*\.py,
+                  .*_test\.py
+
+[MESSAGES CONTROL]
+# Disable specific warnings/errors that are too noisy for this project
+disable = missing-module-docstring,
+          missing-class-docstring,
+          missing-function-docstring,
+          too-few-public-methods,
+          import-outside-toplevel,
+          broad-exception-caught,
+          global-statement,
+          global-variable-not-assigned,
+          invalid-name
+
+# Enable important best practice checks
+enable = unused-variable,
+         unused-import,
+         redefined-outer-name,
+         redefined-builtin,
+         consider-using-f-string,
+         consider-using-enumerate,
+         consider-using-dict-comprehension
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length = 100
+
+# String used as indentation unit
+indent-string = '    '
+
+# Expected format of line ending
+expected-line-ending-format = LF
+
+# Number of spaces of indent required inside a hanging or continued line
+indent-after-paren = 4
+
+# Regexp for a line that is allowed to be longer than the limit
+ignore-long-lines = ^\s*(# )?<?https?://\S+>?$
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args = 7
+
+# Maximum number of attributes for a class  
+max-attributes = 10
+
+# Maximum number of public methods for a class
+max-public-methods = 15
+
+# Maximum number of local variables for function / method body
+max-locals = 15
+
+# Maximum number of branches for function / method body
+max-branches = 12
+
+# Maximum number of statements in function / method body
+max-statements = 50
+
+# Maximum number of parents for a class
+max-parents = 7
+
+[LOGGING]
+# The type of string formatting used in logging functions
+logging-format-style = new
+
+[MISCELLANEOUS]
+# List of note tags to take into consideration
+notes = FIXME,
+        XXX,
+        TODO,
+        BUG,
+        HACK
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines = 4
+
+# Ignore comments when computing similarities
+ignore-comments = yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings = yes
+
+[TYPECHECK]
+# List of decorators that produce context managers
+contextmanager-decorators = contextlib.contextmanager
+
+# List of members which are set dynamically and missed by pylint inference
+generated-members = torch.*,
+                    cv2.*,
+                    numpy.*,
+                    faiss.*
+
+[VARIABLES]
+# A regular expression matching the name of dummy variables
+dummy-variables-rgx = _+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+
+[BASIC]
+# Good variable names which should always be accepted (including ML common names)
+good-names = i,
+             j,
+             k,
+             ex,
+             Run,
+             _,
+             id,
+             db,
+             f,
+             fp,
+             fn,
+             fs,
+             im,
+             img,
+             pil,
+             b64,
+             req,
+             resp,
+             url,
+             uri,
+             api,
+             app,
+             cfg,
+             env,
+             x,
+             y,
+             z,
+             s,
+             c,
+             e,
+             t,
+             r,
+             q,
+             ix,
+             mu,
+             X,
+             W,
+             H,
+             Xn,
+             x0,
+             x1,
+             y0,
+             y1
+
+# Regular expression matching correct function names
+function-rgx = [a-z_][a-z0-9_]{2,30}$
+
+# Regular expression matching correct variable names  
+variable-rgx = [a-z_][a-z0-9_]{2,30}$
+
+# Regular expression matching correct constant names
+const-rgx = (([A-Z_][A-Z0-9_]*)|(__.*__))$
+
+# Regular expression matching correct attribute names
+attr-rgx = [a-z_][a-z0-9_]{2,30}$
+
+# Regular expression matching correct argument names
+argument-rgx = [a-z_][a-z0-9_]{2,30}$
+
+# Regular expression matching correct class names
+class-rgx = [A-Z_][a-zA-Z0-9]+$
+
+# Regular expression matching correct module names
+module-rgx = (([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+
+[IMPORTS]
+# Allow wildcard imports from modules
+allow-wildcard-with-all = no
+
+# Deprecated modules which should not be used
+deprecated-modules = optparse,tkinter.tix
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions = builtins.BaseException,
+                         builtins.Exception

@@ -1,7 +1,6 @@
 import os
 import io
 from typing import List, Tuple, Optional
-from pathlib import Path
 
 from google.cloud import storage
 from PIL import Image
@@ -17,18 +16,18 @@ class GCSStorage:
         else:
             # Use default credentials (for environments like GKE)
             self.client = storage.Client()
-        
+
         self.bucket_name = GCS_BUCKET_NAME
         self.bucket = self.client.bucket(self.bucket_name)
 
     def save_image(self, pil_image: Image.Image, folder_name: str, filename: str) -> str:
         """Save PIL image to GCS bucket.
-        
+
         Args:
             pil_image: PIL Image object
             folder_name: Folder/prefix in bucket (e.g., 'category_a', '_negative')
             filename: Image filename (e.g., 'uuid.jpg')
-            
+
         Returns:
             GCS path in format 'folder_name/filename'
         """
@@ -36,22 +35,22 @@ class GCSStorage:
         img_byte_arr = io.BytesIO()
         pil_image.save(img_byte_arr, format='JPEG', quality=90)
         img_byte_arr = img_byte_arr.getvalue()
-        
+
         # Create blob path
         blob_path = f"{folder_name}/{filename}"
         blob = self.bucket.blob(blob_path)
-        
+
         # Upload image
         blob.upload_from_string(img_byte_arr, content_type='image/jpeg')
-        
+
         return blob_path
 
     def load_image(self, blob_path: str) -> Image.Image:
         """Load image from GCS bucket.
-        
+
         Args:
             blob_path: Full path in bucket (e.g., 'category_a/uuid.jpg')
-            
+
         Returns:
             PIL Image object
         """
@@ -61,38 +60,38 @@ class GCSStorage:
 
     def list_gallery(self) -> List[Tuple[str, str, bool]]:
         """List all images in the gallery bucket.
-        
+
         Returns:
             List of tuples: (label, blob_path, is_negative)
         """
         items = []
-        
+
         # List all blobs in the bucket
         blobs = self.client.list_blobs(self.bucket_name)
-        
+
         for blob in blobs:
             # Skip if not an image file
             if not blob.name.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
                 continue
-                
+
             # Extract folder name (label) from blob path
             path_parts = blob.name.split('/')
             if len(path_parts) < 2:
                 continue
-                
+
             label = path_parts[0]
             is_negative = label.startswith('_')
-            
+
             items.append((label, blob.name, is_negative))
-        
+
         return sorted(items)
 
     def delete_image(self, blob_path: str) -> bool:
         """Delete image from GCS bucket.
-        
+
         Args:
             blob_path: Full path in bucket
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -105,10 +104,10 @@ class GCSStorage:
 
     def image_exists(self, blob_path: str) -> bool:
         """Check if image exists in GCS bucket.
-        
+
         Args:
             blob_path: Full path in bucket
-            
+
         Returns:
             True if exists, False otherwise
         """
@@ -117,11 +116,11 @@ class GCSStorage:
 
     def get_signed_url(self, blob_path: str, expiration_minutes: int = 60) -> str:
         """Get a signed URL for temporary access to an image.
-        
+
         Args:
             blob_path: Full path in bucket
             expiration_minutes: How long the URL should be valid
-            
+
         Returns:
             Signed URL string
         """

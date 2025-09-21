@@ -39,14 +39,14 @@ def load_indexes():
     index_pos = None
     labels_pos = []
     index_neg = None
-    
+
     if INDEX_PATH.exists() and LABELS_PATH.exists():
         index_pos = faiss.read_index(str(INDEX_PATH))
         labels_pos = json.loads(LABELS_PATH.read_text())
-    
+
     if NEG_INDEX_PATH.exists():
         index_neg = faiss.read_index(str(NEG_INDEX_PATH))
-        
+
     return index_pos, labels_pos, index_neg
 
 

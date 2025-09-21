@@ -10,7 +10,7 @@ def load_addon_config() -> dict:
     options_path = Path("/data/options.json")
     if options_path.exists():
         try:
-            config = json.loads(options_path.read_text())
+            config = json.loads(options_path.read_text(encoding="utf-8"))
             print(f"Loaded addon config with {len(config)} options")
             # Hide the actual service account JSON
             safe_config = {k: ("***HIDDEN***" if k == "gcs_service_account_json" and v else v)
@@ -49,7 +49,7 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
         json.loads(gcs_json_str)
 
         credentials_path = "/tmp/gcs-service-account.json"
-        with open(credentials_path, 'w') as f:
+        with open(credentials_path, 'w', encoding="utf-8") as f:
             f.write(gcs_json_str)
 
         os.chmod(credentials_path, 0o600)

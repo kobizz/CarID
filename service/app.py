@@ -1,10 +1,8 @@
 import uuid
 import base64
 import io
-from typing import Dict, Any
 
 from fastapi import HTTPException, Request, FastAPI
-from PIL import Image
 
 from config import (
     NEG_PREFIX, TOPK, ACCEPT_THRESHOLD,
@@ -13,7 +11,7 @@ from config import (
 from models import ClassifyReq, ClassifyResp, AddReq
 from image_utils import pil_from_b64, download_image, embed_image, split_label, save_image
 from index_manager import (
-    index_pos, labels_pos, index_neg, prototypes,
+    index_pos, labels_pos, index_neg,
     rebuild_index, add_to_index, get_index_stats, search_indexes
 )
 
@@ -80,7 +78,9 @@ def classify(req: ClassifyReq, request: Request):
         raise RuntimeError("Index not built; POST /index/rebuild first and/or add images.")
 
     # Parse debug flag (either body.debug or ?debug=1)
-    dbg = bool(req.debug) or (request.query_params.get("debug", "").lower() in ("1", "true", "yes", "on"))
+    dbg = bool(req.debug) or (
+        request.query_params.get("debug", "").lower() in ("1", "true", "yes", "on")
+    )
 
     # Load image
     if req.image_b64:
@@ -89,7 +89,7 @@ def classify(req: ClassifyReq, request: Request):
         try:
             pil = download_image(req.image_url)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"download_error: {e}")
+            raise HTTPException(status_code=400, detail=f"download_error: {e}") from e
     else:
         raise ValueError("Provide image_b64 or image_url")
 
@@ -114,17 +114,24 @@ def classify(req: ClassifyReq, request: Request):
     ranked, neg_top = search_indexes(q, k)
 
     if not ranked:
-        return ClassifyResp(label=None, make=None, model=None, score=0.0, accepted=False, topk=[], debug=None)
+        return ClassifyResp(
+            label=None, make=None, model=None, score=0.0,
+            accepted=False, topk=[], debug=None
+        )
 
     top1_lbl, top1_sim = ranked[0]
     top2_sim = ranked[1][1] if len(ranked) > 1 else 0.0
 
-    thr = req.accept_threshold if req.accept_threshold is not None else ACCEPT_THRESHOLD
-    margin = req.margin_threshold if req.margin_threshold is not None else MARGIN_THRESHOLD
+    thr = (req.accept_threshold 
+           if req.accept_threshold is not None 
+           else ACCEPT_THRESHOLD)
+    margin = (req.margin_threshold 
+              if req.margin_threshold is not None 
+              else MARGIN_THRESHOLD)
 
-    cond_thr = (top1_sim >= thr)
-    cond_margin = ((top1_sim - max(top2_sim, neg_top)) >= margin)
-    cond_negcap = (neg_top <= NEG_ACCEPT_CAP)
+    cond_thr = top1_sim >= thr
+    cond_margin = (top1_sim - max(top2_sim, neg_top)) >= margin
+    cond_negcap = neg_top <= NEG_ACCEPT_CAP
     accepted = cond_thr and cond_margin and cond_negcap
 
     make, model = split_label(top1_lbl)
