@@ -1,4 +1,4 @@
-.PHONY: dev start sync test flake8 pylint lint check format clean help
+.PHONY: dev start sync test flake8 pylint mypy bandit safety lint check format clean help
 
 # Default target
 help:
@@ -9,8 +9,11 @@ help:
 	@echo "  test    - Run tests with pytest"
 	@echo "  flake8  - Run flake8 linter"
 	@echo "  pylint  - Run pylint linter"
+	@echo "  mypy    - Run mypy type checker"
+	@echo "  bandit  - Run bandit security scanner"
+	@echo "  safety  - Run safety dependency scanner"
 	@echo "  lint    - Run all linters (flake8 + pylint)"
-	@echo "  check   - Run all quality checks (lint + test)"
+	@echo "  check   - Run all quality checks (lint + type + security + test)"
 	@echo "  format  - Format code with black"
 	@echo "  clean   - Remove Python cache files"
 
@@ -38,11 +41,23 @@ flake8:
 pylint:
 	python -m pylint service/
 
+# Run mypy type checker
+mypy:
+	python -m mypy service/ --ignore-missing-imports
+
+# Run bandit security scanner
+bandit:
+	python -m bandit -r service/
+
+# Run safety dependency scanner  
+safety:
+	python -m safety check
+
 # Run all linters
 lint: flake8 pylint
 
 # Run all quality checks
-check: lint test
+check: lint mypy bandit safety test
 
 # Format code
 format:

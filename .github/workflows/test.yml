@@ -1,0 +1,77 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-test-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-test-
+          ${{ runner.os }}-pip-
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+        pip install -r service/requirements.txt
+
+    - name: Create test directories
+      run: |
+        mkdir -p tests
+        mkdir -p data
+
+    - name: Run pytest
+      run: |
+        echo "::group::pytest"
+        python -m pytest tests/ -v --tb=short
+        echo "::endgroup::"
+      continue-on-error: true
+
+    - name: Test import structure
+      run: |
+        echo "::group::import-test"
+        cd service
+        python -c "
+        try:
+            import config
+            import models
+            import ml_models
+            import image_utils
+            import storage
+            print('✅ All core modules import successfully')
+        except ImportError as e:
+            print(f'❌ Import error: {e}')
+            exit(1)
+        except Exception as e:
+            print(f'⚠️ Warning: {e}')
+        "
+        echo "::endgroup::"

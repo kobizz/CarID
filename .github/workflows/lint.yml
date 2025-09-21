@@ -1,0 +1,127 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+        pip install -r service/requirements.txt
+
+    - name: Run flake8
+      run: |
+        echo "::group::flake8"
+        python -m flake8 service/ --statistics --count
+        echo "::endgroup::"
+
+    - name: Run pylint
+      run: |
+        echo "::group::pylint"
+        python -m pylint service/ --output-format=github
+        echo "::endgroup::"
+      continue-on-error: true
+
+    - name: Run pylint with score
+      run: |
+        echo "::group::pylint-score"
+        SCORE=$(python -m pylint service/ | grep "Your code has been rated" | grep -oP '\d+\.\d+')
+        echo "Pylint score: $SCORE/10"
+        if (( $(echo "$SCORE < 8.0" | bc -l) )); then
+          echo "::error::Pylint score $SCORE is below minimum threshold of 8.0"
+          exit 1
+        fi
+        echo "::endgroup::"
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mypy types-requests
+        pip install -e .
+        pip install -r service/requirements.txt
+
+    - name: Run mypy
+      run: |
+        echo "::group::mypy"
+        python -m mypy service/ --ignore-missing-imports --show-error-codes
+        echo "::endgroup::"
+      continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml] safety
+
+    - name: Run bandit security scan
+      run: |
+        echo "::group::bandit"
+        python -m bandit -r service/ -f github
+        echo "::endgroup::"
+      continue-on-error: true
+
+    - name: Run safety check
+      run: |
+        echo "::group::safety"
+        python -m safety check --json
+        echo "::endgroup::"
+      continue-on-error: true

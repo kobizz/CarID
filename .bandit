@@ -1,0 +1,25 @@
+[bandit]
+# Bandit configuration file for CarID project
+exclude_dirs = [
+    "venv",
+    "tests", 
+    ".git",
+    "__pycache__",
+    "*.egg-info"
+]
+
+# Skip specific test patterns
+skips = [
+    "B101",  # assert_used
+    "B601",  # paramiko_calls (we don't use paramiko)
+    "B602",  # subprocess_popen_with_shell_equals_true
+]
+
+# Confidence levels: LOW, MEDIUM, HIGH
+confidence = "MEDIUM"
+
+# Report format
+format = "txt"
+
+# Severity levels to report: LOW, MEDIUM, HIGH  
+severity = "LOW"

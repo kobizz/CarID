@@ -39,6 +39,10 @@ dev = [
     "flake8>=6.0.0",
     "black>=23.0.0",
     "pylint>=3.0.0",
+    "mypy>=1.0.0",
+    "bandit[toml]>=1.7.0",
+    "safety>=2.0.0",
+    "types-requests>=2.0.0",
 ]
 
 [tool.setuptools.packages.find]
