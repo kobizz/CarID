@@ -26,7 +26,7 @@ options:
   api_token: null            # leave null to disable
 
   # Google Cloud Storage configuration (mandatory)
-  gcs_bucket_name: "parking-trained-images"
+  gcs_bucket_name: "carid-trained-images"
   gcs_service_account_json: ""  # Base64-encoded service account JSON
 
 # Validation (new schema style)

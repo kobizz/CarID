@@ -21,7 +21,7 @@ start:
 
 # Sync with Home Assistant
 sync:
-	rsync -avz --delete --exclude-from=.syncignore . ha-ssh:/addons/parking
+	rsync -avz --delete --exclude-from=.syncignore . ha-ssh:/addons/carid
 
 # Run tests
 test:

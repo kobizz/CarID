@@ -1,6 +1,6 @@
 # Home Assistant Addon Setup Guide
 
-This guide explains how to configure the parking classification service as a Home Assistant addon. The service uses Google Cloud Storage for image storage.
+This guide explains how to configure the CarID classification service as a Home Assistant addon. The service uses Google Cloud Storage for image storage.
 
 ## 🏠 **Home Assistant Addon Configuration**
 
@@ -22,7 +22,7 @@ neg_accept_cap: 0.80
 prototype_mode: true
 
 # Google Cloud Storage (mandatory)
-gcs_bucket_name: "parking-trained-images" 
+gcs_bucket_name: "carid-trained-images" 
 gcs_service_account_json: ""  # See Step 3 below
 ```
 
@@ -44,9 +44,9 @@ gcs_service_account_json: ""  # See Step 3 below
 
 **Option B: File-based (Alternative)**
 
-1. Place your `service-account.json` file in `/config/parking/`
+1. Place your `service-account.json` file in `/config/carid/`
 2. Leave `gcs_service_account_json` empty
-3. The addon will automatically look for credentials in `/config/parking/service-account.json`
+3. The addon will automatically look for credentials in `/config/carid/service-account.json`
 
 ### **Step 4: Configure Bucket Access**
 
@@ -61,7 +61,7 @@ Make sure your service account has `Storage Admin` permission on your GCS bucket
 ## 📁 **File Locations in Home Assistant**
 
 ```
-/config/parking/          # Optional config directory
+/config/carid/          # Optional config directory
 └── service-account.json  # Alternative credential location
 
 /data/options.json        # Addon configuration (auto-generated)
@@ -90,7 +90,7 @@ neg_accept_cap: 0.80
 prototype_mode: true
 
 # GCS Configuration (mandatory)
-gcs_bucket_name: "parking-trained-images"
+gcs_bucket_name: "carid-trained-images"
 gcs_service_account_json: "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAg..."
 ```
 

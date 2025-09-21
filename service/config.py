@@ -17,7 +17,7 @@ DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Google Cloud Storage configuration (mandatory)
-GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "parking-trained-images")
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "carid-trained-images")
 GCS_CREDENTIALS_PATH = os.getenv("GCS_CREDENTIALS_PATH", None)  # Path to service account JSON
 
 DEVICE = os.getenv("DEVICE", "cpu")

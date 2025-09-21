@@ -29,7 +29,7 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
     addon_config = load_addon_config()
 
     # Option 1: Check for file-based credentials first
-    config_file_path = Path("/config/parking/service-account.json")
+    config_file_path = Path("/config/carid/service-account.json")
     if config_file_path.exists():
         print(f"Using GCS credentials from {config_file_path}")
         return str(config_file_path)

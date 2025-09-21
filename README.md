@@ -1,4 +1,4 @@
-# Parking Classification Service
+# CarID Classification Service
 
 A self-hosted car make/model classifier using OpenCLIP embeddings and FAISS indexing with Google Cloud Storage for image management.
 
@@ -35,7 +35,7 @@ See [ADDON_SETUP.md](ADDON_SETUP.md) for detailed instructions.
 1. **Clone Repository**:
    ```bash
    git clone <repository-url>
-   cd parking
+   cd carid
    ```
 
 2. **Set up GCS Credentials**:
@@ -89,7 +89,7 @@ curl -X POST "http://localhost:8001/index/rebuild"
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GCS_BUCKET_NAME` | `parking-trained-images` | Google Cloud Storage bucket name |
+| `GCS_BUCKET_NAME` | `carid-trained-images` | Google Cloud Storage bucket name |
 | `GCS_CREDENTIALS_PATH` | - | Path to service account JSON file |
 | `ACCEPT_THRESHOLD` | `0.80` | Minimum similarity for classification |
 | `MARGIN_THRESHOLD` | `0.04` | Minimum margin over second-best match |

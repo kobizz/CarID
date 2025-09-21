@@ -19,7 +19,7 @@ services:
       NEG_PREFIX: "${NEG_PREFIX:-_}"               # folders starting with this are treated as negatives
 
       # Google Cloud Storage configuration (mandatory)
-      GCS_BUCKET_NAME: "${GCS_BUCKET_NAME:-parking-trained-images}"
+      GCS_BUCKET_NAME: "${GCS_BUCKET_NAME:-carid-trained-images}"
       GCS_CREDENTIALS_PATH: "${GCS_CREDENTIALS_PATH:-/app/gcs-key.json}"
     volumes:
       - ./data:/app/data
