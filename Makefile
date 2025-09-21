@@ -1,4 +1,4 @@
-.PHONY: dev start sync test lint format clean help
+.PHONY: dev start sync test flake8 pylint lint check format clean help
 
 # Default target
 help:
@@ -7,7 +7,10 @@ help:
 	@echo "  start   - Start FastAPI server in production mode"
 	@echo "  sync    - Sync local project with HA instance"
 	@echo "  test    - Run tests with pytest"
-	@echo "  lint    - Run flake8 linter"
+	@echo "  flake8  - Run flake8 linter"
+	@echo "  pylint  - Run pylint linter"
+	@echo "  lint    - Run all linters (flake8 + pylint)"
+	@echo "  check   - Run all quality checks (lint + test)"
 	@echo "  format  - Format code with black"
 	@echo "  clean   - Remove Python cache files"
 
@@ -27,9 +30,19 @@ sync:
 test:
 	python -m pytest tests/ -v
 
-# Lint code
-lint:
+# Lint code with flake8
+flake8:
 	python -m flake8 service/
+
+# Lint code with pylint
+pylint:
+	python -m pylint service/
+
+# Run all linters
+lint: flake8 pylint
+
+# Run all quality checks
+check: lint test
 
 # Format code
 format:

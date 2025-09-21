@@ -1,9 +1,7 @@
-import json
 from typing import List, Optional, Dict, Tuple
 
 import numpy as np
 import faiss
-from PIL import Image
 
 from config import PROTOTYPE_MODE
 from storage import (
@@ -38,7 +36,7 @@ def load_all():
                 mu = s / float(c)
                 mu = mu / max(1e-12, np.linalg.norm(mu))
                 vecs.append(mu[None, :])
-            if len(vecs):
+            if vecs:
                 X = np.vstack(vecs).astype("float32")
                 index_pos = faiss.IndexFlatIP(X.shape[1])
                 index_pos.add(X)
@@ -99,7 +97,7 @@ def rebuild_index():
             mu = mu / max(1e-12, np.linalg.norm(mu))
             vecs.append(mu[None, :])
             prototypes[lbl] = {"sum": s.tolist(), "count": c}
-        if len(vecs):
+        if vecs:
             X = np.vstack(vecs).astype("float32")
             index_pos = faiss.IndexFlatIP(X.shape[1])
             index_pos.add(X)
@@ -142,7 +140,7 @@ def rebuild_index():
 def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
     """Add a single vector to the appropriate index"""
     global index_pos, labels_pos, index_neg, prototypes
-    
+
     if is_negative:
         if index_neg is None:
             index_neg = faiss.IndexFlatIP(EMBED_DIM)
@@ -223,13 +221,13 @@ def search_indexes(query_vec: np.ndarray, k: int) -> Tuple[List[Tuple[str, float
     sims_pos = sims_pos[0].tolist()
     ids_pos = ids_pos[0].tolist()
     ranked = [(labels_pos[i], float(s)) for i, s in zip(ids_pos, sims_pos) if i != -1]
-    
+
     # Best negative similarity
     neg_top = 0.0
     if index_neg is not None and index_neg.ntotal > 0:
         sims_neg, _ = index_neg.search(query_vec, 1)
         neg_top = float(sims_neg[0][0])
-    
+
     return ranked, neg_top
 
 

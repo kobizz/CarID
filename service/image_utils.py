@@ -1,13 +1,12 @@
 import io
 import base64
-from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import torch
 from PIL import Image
 
-from config import NEG_PREFIX, DEVICE
+from config import DEVICE
 from ml_models import clip_model, preproc
 from gcs_storage import get_gcs_storage
 
