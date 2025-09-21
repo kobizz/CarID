@@ -1,4 +1,3 @@
-import torch
 import open_clip
 from torchvision import transforms
 from config import DEVICE, CLIP_MODEL, CLIP_PRETRAIN

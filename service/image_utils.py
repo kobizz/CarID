@@ -40,12 +40,12 @@ def list_gallery():
 
 def save_image(pil_image: Image.Image, folder_name: str, filename: str) -> str:
     """Save image to GCS storage.
-    
+
     Args:
         pil_image: PIL Image object
         folder_name: Folder/label name
         filename: Image filename
-        
+
     Returns:
         GCS blob path where image was saved
     """
@@ -55,10 +55,10 @@ def save_image(pil_image: Image.Image, folder_name: str, filename: str) -> str:
 
 def load_image(blob_path: str) -> Image.Image:
     """Load image from GCS storage.
-    
+
     Args:
         blob_path: GCS blob path
-        
+
     Returns:
         PIL Image object
     """
