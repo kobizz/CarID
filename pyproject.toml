@@ -14,12 +14,11 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn[standard]>=0.25.0",
@@ -39,6 +38,10 @@ dev = [
     "flake8>=6.0.0",
     "black>=23.0.0",
     "pylint>=3.0.0",
+    "mypy>=1.0.0",
+    "bandit[toml]>=1.7.0",
+    "safety>=2.0.0",
+    "types-requests>=2.0.0",
 ]
 
 [tool.setuptools.packages.find]

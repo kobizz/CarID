@@ -57,7 +57,9 @@ def index_add(req: AddReq):
 
     # Save to storage
     label = req.label.strip().lower().replace(" ", "_")
-    folder_name = label if not req.is_negative else (label if label.startswith(NEG_PREFIX) else f"{NEG_PREFIX}{label}")
+    folder_name = label if not req.is_negative else (
+        label if label.startswith(NEG_PREFIX) else f"{NEG_PREFIX}{label}"
+    )
     fname = f"{uuid.uuid4().hex}.jpg"
     saved_path = save_image(pil, folder_name, fname)
 
@@ -103,7 +105,7 @@ def classify(req: ClassifyReq, request: Request):
         if y1 <= y0:
             y1 = min(1.0, y0 + 1e-3)
         W, H = pil.width, pil.height
-        box = (int(x0*W), int(y0*H), int(x1*W), int(y1*H))
+        box = (int(x0 * W), int(y0 * H), int(x1 * W), int(y1 * H))
         pil = pil.crop(box)
 
     # Embed query
@@ -122,11 +124,11 @@ def classify(req: ClassifyReq, request: Request):
     top1_lbl, top1_sim = ranked[0]
     top2_sim = ranked[1][1] if len(ranked) > 1 else 0.0
 
-    thr = (req.accept_threshold 
-           if req.accept_threshold is not None 
+    thr = (req.accept_threshold
+           if req.accept_threshold is not None
            else ACCEPT_THRESHOLD)
-    margin = (req.margin_threshold 
-              if req.margin_threshold is not None 
+    margin = (req.margin_threshold
+              if req.margin_threshold is not None
               else MARGIN_THRESHOLD)
 
     cond_thr = top1_sim >= thr

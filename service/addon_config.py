@@ -14,7 +14,7 @@ def load_addon_config() -> dict:
             print(f"Loaded addon config with {len(config)} options")
             # Hide the actual service account JSON
             safe_config = {k: ("***HIDDEN***" if k == "gcs_service_account_json" and v else v)
-                          for k, v in config.items()}
+                           for k, v in config.items()}
             print(f"Addon config: {safe_config}")
             return config
         except Exception as e:

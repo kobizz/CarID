@@ -139,7 +139,7 @@ def rebuild_index():
 
 def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
     """Add a single vector to the appropriate index"""
-    global index_pos, labels_pos, index_neg, prototypes
+    global index_pos, labels_pos, index_neg
 
     if is_negative:
         if index_neg is None:
