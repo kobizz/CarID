@@ -1,8 +1,11 @@
 import json
 import base64
 import os
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def load_addon_config() -> dict:
@@ -11,16 +14,16 @@ def load_addon_config() -> dict:
     if options_path.exists():
         try:
             config = json.loads(options_path.read_text(encoding="utf-8"))
-            print(f"Loaded addon config with {len(config)} options")
+            logger.info(f"Loaded addon config with {len(config)} options")
             # Hide the actual service account JSON
             safe_config = {k: ("***HIDDEN***" if k == "gcs_service_account_json" and v else v)
                            for k, v in config.items()}
-            print(f"Addon config: {safe_config}")
+            logger.info(f"Addon config: {safe_config}")
             return config
         except Exception as e:
-            print(f"Error loading addon config: {e}")
+            logger.error(f"Error loading addon config: {e}")
     else:
-        print(f"Addon config file not found at {options_path}")
+        logger.warning(f"Addon config file not found at {options_path}")
     return {}
 
 
@@ -31,17 +34,17 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
     # Option 1: Check for file-based credentials first
     config_file_path = Path("/config/carid/service-account.json")
     if config_file_path.exists():
-        print(f"Using GCS credentials from {config_file_path}")
+        logger.info(f"Using GCS credentials from {config_file_path}")
         return str(config_file_path)
 
     # Option 2: Get base64-encoded service account JSON from addon config
     gcs_json_b64 = addon_config.get("gcs_service_account_json", "")
 
     if not gcs_json_b64:
-        print("No gcs_service_account_json found in addon config")
+        logger.info("No gcs_service_account_json found in addon config")
         return None
 
-    print(f"Found base64 service account JSON in addon config (length: {len(gcs_json_b64)} chars)")
+    logger.info(f"Found base64 service account JSON in addon config (length: {len(gcs_json_b64)} chars)")
 
     try:
         gcs_json_str = base64.b64decode(gcs_json_b64).decode('utf-8')
@@ -54,11 +57,11 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
 
         os.chmod(credentials_path, 0o600)
 
-        print(f"Using GCS credentials from addon configuration (base64) -> {credentials_path}")
+        logger.info(f"Using GCS credentials from addon configuration (base64) -> {credentials_path}")
         return credentials_path
 
     except Exception as e:
-        print(f"Error processing GCS service account JSON: {e}")
+        logger.error(f"Error processing GCS service account JSON: {e}")
         return None
 
 

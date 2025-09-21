@@ -3,7 +3,9 @@ from torchvision import transforms
 from config import DEVICE, CLIP_MODEL, CLIP_PRETRAIN
 
 # ---------- Models ----------
-print(f"Loading OpenCLIP {CLIP_MODEL}/{CLIP_PRETRAIN} on {DEVICE}...")
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"Loading OpenCLIP {CLIP_MODEL}/{CLIP_PRETRAIN} on {DEVICE}...")
 clip_model, _, _ = open_clip.create_model_and_transforms(
     CLIP_MODEL, pretrained=CLIP_PRETRAIN, device=DEVICE
 )

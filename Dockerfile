@@ -10,6 +10,7 @@ COPY service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY service/*.py ./
+COPY service/logging.yaml ./
 COPY data/ ./data/
 
 # Copy setup documentation
@@ -19,4 +20,4 @@ COPY ADDON_SETUP.md .
 RUN mkdir -p /app/data
 
 EXPOSE 8001
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001", "--log-config", "logging.yaml"]

@@ -1,7 +1,10 @@
 from typing import List, Optional, Dict, Tuple
+import logging
 
 import numpy as np
 import faiss
+
+logger = logging.getLogger(__name__)
 
 from config import PROTOTYPE_MODE
 from storage import (
@@ -82,7 +85,7 @@ def rebuild_index():
                     pos_feats.append(vec)
                     pos_labels.append(label)
         except Exception as e:
-            print("Skip", path_or_blob, e)
+            logger.warning(f"Skipping {path_or_blob}: {e}")
 
     global index_pos, labels_pos, index_neg, prototypes
 

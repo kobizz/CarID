@@ -1,6 +1,9 @@
 import uuid
 import base64
 import io
+import logging
+import sys
+from datetime import datetime
 
 from fastapi import HTTPException, Request, FastAPI
 
@@ -15,11 +18,43 @@ from index_manager import (
     rebuild_index, add_to_index, get_index_stats, search_indexes
 )
 
+# Configure logging with timestamps
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Create logger for this module
+logger = logging.getLogger(__name__)
+
+# Configure uvicorn loggers to use the same format
+uvicorn_access_logger = logging.getLogger("uvicorn.access")
+uvicorn_error_logger = logging.getLogger("uvicorn.error")
+uvicorn_logger = logging.getLogger("uvicorn")
+
+# Set up the formatter for all uvicorn loggers
+formatter = logging.Formatter(
+    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Apply formatter to all existing handlers
+for logger_obj in [uvicorn_access_logger, uvicorn_error_logger, uvicorn_logger]:
+    for handler in logger_obj.handlers:
+        handler.setFormatter(formatter)
+
+logger.info("Starting CarID service with timestamp logging enabled")
+
 app = FastAPI(title="CarID (OpenCLIP + FAISS + Negatives + Prototype Mode)")
 
 
 @app.get("/healthz")
 def healthz():
+    logger.info("Health check requested")
     return {
         "ok": True,
         "prototype_mode": PROTOTYPE_MODE,
@@ -37,7 +72,10 @@ def index_stats():
 @app.post("/index/rebuild")
 def index_rebuild():
     """Recompute positive index (and prototypes if enabled) + negative index from disk."""
-    return rebuild_index()
+    logger.info("Index rebuild requested")
+    result = rebuild_index()
+    logger.info("Index rebuild completed")
+    return result
 
 
 @app.post("/index/add")
@@ -47,11 +85,14 @@ def index_add(req: AddReq):
        - In per-image mode: appends to pos index or neg index directly.
        Also saves the image to the gallery on disk.
     """
+    logger.info(f"Adding image to index - label: {req.label}, is_negative: {req.is_negative}")
+    
     # Load image
     if req.image_b64:
         pil = pil_from_b64(req.image_b64)
     elif req.image_url:
         pil = download_image(req.image_url)
+        logger.info(f"Downloaded image from URL: {req.image_url}")
     else:
         raise ValueError("Provide image_b64 or image_url")
 
@@ -76,13 +117,19 @@ def index_add(req: AddReq):
 
 @app.post("/classify", response_model=ClassifyResp)
 def classify(req: ClassifyReq, request: Request):
+    logger.info("Classification request received")
+    
     if index_pos is None or (index_pos.ntotal == 0):
+        logger.error("Index not built - cannot perform classification")
         raise RuntimeError("Index not built; POST /index/rebuild first and/or add images.")
 
     # Parse debug flag (either body.debug or ?debug=1)
     dbg = bool(req.debug) or (
         request.query_params.get("debug", "").lower() in ("1", "true", "yes", "on")
     )
+    
+    if dbg:
+        logger.info("Debug mode enabled for this classification request")
 
     # Load image
     if req.image_b64:
@@ -116,6 +163,7 @@ def classify(req: ClassifyReq, request: Request):
     ranked, neg_top = search_indexes(q, k)
 
     if not ranked:
+        logger.warning("No results found in classification search")
         return ClassifyResp(
             label=None, make=None, model=None, score=0.0,
             accepted=False, topk=[], debug=None
@@ -123,6 +171,7 @@ def classify(req: ClassifyReq, request: Request):
 
     top1_lbl, top1_sim = ranked[0]
     top2_sim = ranked[1][1] if len(ranked) > 1 else 0.0
+    logger.info(f"Classification result - top match: {top1_lbl} (score: {top1_sim:.3f})")
 
     thr = (req.accept_threshold
            if req.accept_threshold is not None
@@ -165,11 +214,13 @@ def classify(req: ClassifyReq, request: Request):
         cropped_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
     if not accepted:
+        logger.info(f"Classification rejected - label: {top1_lbl}, score: {top1_sim:.3f}, conditions: thr={cond_thr}, margin={cond_margin}, neg_cap={cond_negcap}")
         return ClassifyResp(
             label=None, make=None, model=None, score=float(top1_sim),
             accepted=False, topk=ranked[:k], debug=debug_obj, cropped_b64=cropped_b64
         )
 
+    logger.info(f"Classification accepted - label: {top1_lbl}, make: {make}, model: {model}, score: {top1_sim:.3f}")
     return ClassifyResp(
         label=top1_lbl, make=make, model=model, score=float(top1_sim),
         accepted=True, topk=ranked[:k], debug=debug_obj, cropped_b64=cropped_b64
