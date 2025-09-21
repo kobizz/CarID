@@ -25,7 +25,7 @@ class ClassifyResp(BaseModel):
 
 
 class AddReq(BaseModel):
-    label: str                     # e.g., "mazda_cx5" or for negatives just "camera"
+    label: str                     # e.g., "category_a" or for negatives just "other"
     is_negative: bool = False
     image_b64: Optional[str] = None
     image_url: Optional[str] = None

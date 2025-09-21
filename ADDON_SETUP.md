@@ -67,8 +67,8 @@ Make sure your service account has `Storage Admin` permission on your GCS bucket
 /data/options.json        # Addon configuration (auto-generated)
 
 GCS Bucket Structure:     # All images stored in Google Cloud Storage
-├── mazda_cx5/            # Car model folders  
-├── skoda_octavia/        # Car model folders
+├── category_a/           # Classification category folders  
+├── category_b/           # Classification category folders
 ├── _negative/            # Negative examples
 └── ...
 ```
@@ -104,7 +104,7 @@ To populate your GCS bucket with training images:
    curl -X POST "http://homeassistant.local:8001/index/add" \
      -H "Content-Type: application/json" \
      -d '{
-       "label": "mazda_cx5",
+       "label": "category_a",
        "image_b64": "data:image/jpeg;base64,/9j/4AAQ...",
        "is_negative": false
      }'

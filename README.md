@@ -1,11 +1,11 @@
 # CarID Classification Service
 
-A self-hosted car make/model classifier using OpenCLIP embeddings and FAISS indexing with Google Cloud Storage for image management.
+A self-hosted image classification service using OpenCLIP embeddings and FAISS indexing with Google Cloud Storage for image management.
 
 ## 🚗 **Features**
 
-- **Multi-class Classification**: Identify car makes and models from images
-- **Negative Sample Learning**: Reject non-car images and unknown vehicles  
+- **Multi-class Classification**: Identify categories and subcategories from images
+- **Negative Sample Learning**: Reject irrelevant images and unknown categories  
 - **Prototype Mode**: Efficient per-class centroids or per-image indexing
 - **Google Cloud Storage**: Scalable cloud storage for training images
 - **Home Assistant Integration**: Native addon support
@@ -65,7 +65,7 @@ curl http://localhost:8001/healthz
 curl -X POST "http://localhost:8001/index/add" \
   -H "Content-Type: application/json" \
   -d '{
-    "label": "mazda_cx5",
+    "label": "category_a",
     "image_b64": "data:image/jpeg;base64,/9j/4AAQ...",
     "is_negative": false
   }'
@@ -103,15 +103,15 @@ Images are organized in GCS with this structure:
 
 ```
 gs://your-bucket/
-├── mazda_cx5/           # Positive samples
+├── category_a/          # Positive samples
 │   ├── image1.jpg
 │   └── image2.jpg
-├── toyota_camry/        # Positive samples
+├── category_b/          # Positive samples
 │   ├── image1.jpg
 │   └── image2.jpg
 └── _negative/           # Negative samples
-    ├── not_car1.jpg
-    └── not_car2.jpg
+    ├── sample1.jpg
+    └── sample2.jpg
 ```
 
 ## 🔧 **Advanced Usage**
@@ -123,9 +123,9 @@ gs://your-bucket/
 
 ### **Negative Sampling**
 
-Add negative examples (non-cars, unknown vehicles) to folders starting with `_`:
+Add negative examples (irrelevant images, unknown categories) to folders starting with `_`:
 - `_negative/` - General negative samples
-- `_unknown_cars/` - Unknown car models
+- `_unknown/` - Unknown categories
 
 ### **Fine-tuning Thresholds**
 

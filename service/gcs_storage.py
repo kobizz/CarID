@@ -26,7 +26,7 @@ class GCSStorage:
         
         Args:
             pil_image: PIL Image object
-            folder_name: Folder/prefix in bucket (e.g., 'mazda_cx5', '_negative')
+            folder_name: Folder/prefix in bucket (e.g., 'category_a', '_negative')
             filename: Image filename (e.g., 'uuid.jpg')
             
         Returns:
@@ -50,7 +50,7 @@ class GCSStorage:
         """Load image from GCS bucket.
         
         Args:
-            blob_path: Full path in bucket (e.g., 'mazda_cx5/uuid.jpg')
+            blob_path: Full path in bucket (e.g., 'category_a/uuid.jpg')
             
         Returns:
             PIL Image object

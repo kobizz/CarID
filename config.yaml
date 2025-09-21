@@ -1,7 +1,7 @@
 name: CarID (OpenCLIP retrieval)
 slug: carid
-version: "0.6.5"
-description: Self-hosted make/model classifier (OpenCLIP + FAISS). CPU-only by default.
+version: "0.7.0"
+description: Self-hosted image classifier (OpenCLIP + FAISS). CPU-only by default.
 arch:
   - aarch64
   - amd64
