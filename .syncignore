@@ -1,0 +1,7 @@
+.git/**
+.idea/**
+venv/**
+.env
+.vscode/**
+parking_service.egg-info/**
+__pycache__/**

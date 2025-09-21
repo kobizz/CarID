@@ -1,0 +1,42 @@
+name: CarID (OpenCLIP retrieval)
+slug: carid
+version: "0.6.5"
+description: Self-hosted make/model classifier (OpenCLIP + FAISS). CPU-only by default.
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+webui: "http://[HOST]:[PORT:8001]/docs"
+ports:
+  "8001/tcp": 8001
+ports_description:
+  "8001/tcp": HTTP API
+map:
+  - type: addon_config
+    read_only: false         # /config mounted RW (optional logs/debug)
+watchdog: "http://[HOST]:[PORT:8001]/healthz"
+
+# User options (shown in UI)
+options:
+  accept_threshold: 0.80
+  margin_threshold: 0.04
+  neg_accept_cap: 0.80
+  prototype_mode: true
+  api_token: null            # leave null to disable
+
+  # Google Cloud Storage configuration (mandatory)
+  gcs_bucket_name: "parking-trained-images"
+  gcs_service_account_json: ""  # Base64-encoded service account JSON
+
+# Validation (new schema style)
+schema:
+  accept_threshold: "float(0,1)"
+  margin_threshold: "float(0,1)"
+  neg_accept_cap: "float(0,1)"
+  prototype_mode: bool
+  api_token: "str?"
+
+  # GCS configuration validation (mandatory)
+  gcs_bucket_name: str
+  gcs_service_account_json: "str?"

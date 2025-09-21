@@ -1,0 +1,29 @@
+services:
+  carid:
+    build: .
+    ports: ["8001:8001"]
+    environment:
+      # Retrieval thresholds (tune later)
+      ACCEPT_THRESHOLD: "${ACCEPT_THRESHOLD:-0.80}"      # min cosine similarity for top-1
+      MARGIN_THRESHOLD: "${MARGIN_THRESHOLD:-0.04}"      # top1 - max(top2, neg_top)
+      NEG_ACCEPT_CAP: "${NEG_ACCEPT_CAP:-0.80}"        # if negatives look >= this, reject
+      TOPK: "${TOPK:-5}"
+
+      # Models / hardware
+      DEVICE: "${DEVICE:-cpu}"                 # "cuda" if you have a GPU
+      CLIP_MODEL: "${CLIP_MODEL:-ViT-B-32}"
+      CLIP_PRETRAIN: "${CLIP_PRETRAIN:-laion2b_s34b_b79k}"
+
+      # Indexing behavior
+      PROTOTYPE_MODE: "${PROTOTYPE_MODE:-true}"        # true = per-class centroid, false = per-image index
+      NEG_PREFIX: "${NEG_PREFIX:-_}"               # folders starting with this are treated as negatives
+
+      # Google Cloud Storage configuration (mandatory)
+      GCS_BUCKET_NAME: "${GCS_BUCKET_NAME:-parking-trained-images}"
+      GCS_CREDENTIALS_PATH: "${GCS_CREDENTIALS_PATH:-/app/gcs-key.json}"
+    volumes:
+      - ./data:/app/data
+      # Uncomment and set GCS_SERVICE_ACCOUNT_PATH in .env to mount your service account JSON:
+      # - ${GCS_SERVICE_ACCOUNT_PATH}:/app/gcs-key.json:ro
+    restart: unless-stopped
+
