@@ -12,7 +12,7 @@ from storage import (
     load_indexes, load_prototypes
 )
 from image_utils import list_gallery, embed_image, load_image
-from ml_models import EMBED_DIM
+from ml_models import get_embed_dim
 
 
 # ---------- Globals (indexes) ----------
@@ -146,7 +146,7 @@ def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
 
     if is_negative:
         if index_neg is None:
-            index_neg = faiss.IndexFlatIP(EMBED_DIM)
+            index_neg = faiss.IndexFlatIP(get_embed_dim())
         index_neg.add(vec)
         save_neg_index(index_neg)
         return {"neg_count": index_neg.ntotal}
@@ -186,7 +186,7 @@ def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
     else:
         # Per-image mode: append vector + label
         if index_pos is None:
-            index_pos = faiss.IndexFlatIP(EMBED_DIM)
+            index_pos = faiss.IndexFlatIP(get_embed_dim())
         index_pos.add(vec)
         labels_pos.append(label)
         save_pos_index(index_pos, labels_pos)

@@ -17,6 +17,7 @@ from index_manager import (
     index_pos, labels_pos, index_neg,
     rebuild_index, add_to_index, get_index_stats, search_indexes
 )
+from ml_models import unload_model
 
 # Configure logging with timestamps
 logging.basicConfig(
@@ -55,9 +56,12 @@ app = FastAPI(title="CarID (OpenCLIP + FAISS + Negatives + Prototype Mode)")
 @app.get("/healthz")
 def healthz():
     logger.info("Health check requested")
+    from ml_models import clip_model
+    
     return {
         "ok": True,
         "prototype_mode": PROTOTYPE_MODE,
+        "model_loaded": clip_model is not None,
         "pos_count": 0 if index_pos is None else index_pos.ntotal,
         "neg_count": 0 if index_neg is None else index_neg.ntotal,
         "classes": labels_pos
@@ -67,6 +71,19 @@ def healthz():
 @app.get("/index/stats")
 def index_stats():
     return get_index_stats()
+
+
+@app.post("/system/memory/free")
+def free_memory():
+    """Free model memory (useful for maintenance or memory pressure)"""
+    logger.info("Memory cleanup requested")
+    unload_model()
+    
+    # Force garbage collection
+    import gc
+    gc.collect()
+    
+    return {"ok": True, "message": "Model unloaded and memory freed"}
 
 
 @app.post("/index/rebuild")

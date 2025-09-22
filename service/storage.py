@@ -7,12 +7,12 @@ from config import (
     INDEX_PATH, LABELS_PATH, NEG_INDEX_PATH, PROTO_PATH, META_PATH,
     PROTOTYPE_MODE
 )
-from ml_models import EMBED_DIM
+from ml_models import get_embed_dim
 
 
 def save_meta():
     META_PATH.write_text(json.dumps({
-        "embed_dim": EMBED_DIM,
+        "embed_dim": get_embed_dim(),
         "prototype_mode": PROTOTYPE_MODE
     }))
 

@@ -7,7 +7,7 @@ import torch
 from PIL import Image
 
 from config import DEVICE
-from ml_models import clip_model, preproc
+from ml_models import get_model, get_preprocessor
 from gcs_storage import get_gcs_storage
 
 
@@ -26,8 +26,11 @@ def download_image(url: str) -> Image.Image:
 
 @torch.no_grad()
 def embed_image(pil: Image.Image) -> np.ndarray:
-    t = preproc(pil).unsqueeze(0).to(DEVICE)
-    feat = clip_model.encode_image(t)
+    """Embed PIL image using OpenCLIP."""
+    preprocessor = get_preprocessor()
+    model = get_model()
+    t = preprocessor(pil).unsqueeze(0).to(DEVICE)
+    feat = model.encode_image(t)
     feat = feat / feat.norm(dim=-1, keepdim=True)
     return feat.cpu().numpy().astype("float32")  # (1, D)
 
