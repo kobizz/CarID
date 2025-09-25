@@ -29,7 +29,7 @@ def embed_image(pil: Image.Image) -> np.ndarray:
     """Embed PIL image using OpenCLIP."""
     preprocessor = get_preprocessor()
     model = get_model()
-    t = preprocessor(pil).unsqueeze(0).to(DEVICE)
+    t = preprocessor(pil).unsqueeze(0).to(DEVICE)  # pylint: disable=not-callable
     feat = model.encode_image(t)
     feat = feat / feat.norm(dim=-1, keepdim=True)
     return feat.cpu().numpy().astype("float32")  # (1, D)

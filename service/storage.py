@@ -1,5 +1,6 @@
 import json
 import gzip
+import logging
 import tempfile
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -13,8 +14,6 @@ from config import (
     BACKUP_BATCH_SIZE, BACKUP_INTERVAL_MINUTES, MAX_BACKUP_VERSIONS
 )
 from ml_models import get_embed_dim
-
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -193,7 +192,7 @@ def _backup_prototypes_to_gcs(prototypes: Dict[str, Dict[str, List[float] | int]
 
             # Save prototypes to temporary file
             temp_proto_path = temp_dir_path / f"prototypes_{timestamp}.json"
-            with open(temp_proto_path, 'w') as f:
+            with open(temp_proto_path, 'w', encoding='utf-8') as f:
                 json.dump(prototypes, f, ensure_ascii=False)
 
             # Compress prototypes
@@ -515,7 +514,7 @@ def restore_prototypes_from_gcs(timestamp: Optional[str] = None) -> Optional[Dic
                     f_out.writelines(f_in)
 
             # Load prototypes
-            with open(proto_path, 'r') as f:
+            with open(proto_path, 'r', encoding='utf-8') as f:
                 prototypes = json.load(f)
 
             return prototypes
