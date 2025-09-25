@@ -87,7 +87,6 @@ class GCSStorage:
         return sorted(items)
 
 
-
 # Global instance
 gcs_storage: Optional[GCSStorage] = None
 

@@ -58,9 +58,9 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
 
         # Create secure temporary file with proper permissions
         with tempfile.NamedTemporaryFile(
-            mode='w', 
-            suffix='.json', 
-            prefix='gcs-service-account-', 
+            mode='w',
+            suffix='.json',
+            prefix='gcs-service-account-',
             delete=False,
             encoding='utf-8'
         ) as temp_file:

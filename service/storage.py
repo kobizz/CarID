@@ -70,9 +70,9 @@ def save_meta():
 
 
 def save_pos_index(
-    ix: faiss.Index, 
-    labels: List[str], 
-    backup_to_gcs: bool = None, 
+    ix: faiss.Index,
+    labels: List[str],
+    backup_to_gcs: bool = None,
     force_backup: bool = False
 ):
     # Save locally for fast access
@@ -93,8 +93,8 @@ def save_pos_index(
 
 
 def save_neg_index(
-    ix: Optional[faiss.Index], 
-    backup_to_gcs: bool = None, 
+    ix: Optional[faiss.Index],
+    backup_to_gcs: bool = None,
     force_backup: bool = False
 ):
     if ix is None:
@@ -119,7 +119,7 @@ def save_neg_index(
 
 
 def save_prototypes(
-    proto: Dict[str, Dict[str, List[float] | int]], 
+    proto: Dict[str, Dict[str, List[float] | int]],
     backup_to_gcs: bool = None
 ):
     PROTO_PATH.write_text(json.dumps(proto))  # raw sums+counts
@@ -205,8 +205,8 @@ def _backup_prototypes_to_gcs(prototypes: Dict[str, Dict[str, List[float] | int]
             # Upload to GCS
             gcs = get_gcs_storage()
             _upload_file_to_gcs(
-                gcs, 
-                compressed_proto_path, 
+                gcs,
+                compressed_proto_path,
                 f"indexes/prototypes_{timestamp}.json.gz"
             )
 
@@ -255,16 +255,16 @@ def _backup_index_to_gcs(index_type: str, ix: faiss.Index, labels: List[str]):
 
             # Upload compressed index
             _upload_file_to_gcs(
-                gcs, 
-                compressed_index_path, 
+                gcs,
+                compressed_index_path,
                 f"indexes/{index_type}_index_{timestamp}.faiss.gz"
             )
 
             # Upload labels if provided
             if labels:
                 _upload_file_to_gcs(
-                    gcs, 
-                    labels_path, 
+                    gcs,
+                    labels_path,
                     f"indexes/{index_type}_labels_{timestamp}.json.gz"
                 )
 
@@ -386,7 +386,7 @@ def _cleanup_old_prototype_backups(gcs_storage):
 
 
 def restore_index_from_gcs(
-    index_type: str, 
+    index_type: str,
     timestamp: Optional[str] = None
 ) -> Optional[tuple]:
     """Restore FAISS index from GCS backup
@@ -555,7 +555,7 @@ def list_index_versions(index_type: str) -> List[str]:
         gcs = get_gcs_storage()
 
         blobs = gcs.client.list_blobs(
-            gcs.bucket_name, 
+            gcs.bucket_name,
             prefix=f"indexes/{index_type}_index_"
         )
         timestamps = []
@@ -722,7 +722,7 @@ def get_backup_status() -> Dict[str, any]:
 
     return {
         "last_backup_time": (
-            _backup_state["last_backup_time"].isoformat() 
+            _backup_state["last_backup_time"].isoformat()
             if _backup_state["last_backup_time"] else None
         ),
         "additions_since_backup": _backup_state["additions_since_backup"],
