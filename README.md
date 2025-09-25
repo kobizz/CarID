@@ -85,6 +85,44 @@ curl -X POST "http://localhost:8001/classify" \
 curl -X POST "http://localhost:8001/index/rebuild"
 ```
 
+### **Reload Index**
+```bash
+curl -X POST "http://localhost:8001/index/reload"
+```
+
+### **Index Statistics**
+```bash
+# Basic stats
+curl "http://localhost:8001/index/basic-stats"
+
+# Detailed stats with backup info
+curl "http://localhost:8001/index/stats"
+
+# Current index status
+curl "http://localhost:8001/index/status"
+```
+
+### **Memory Management**
+```bash
+# Free model memory
+curl -X POST "http://localhost:8001/system/memory/free"
+```
+
+### **Backup Management**
+```bash
+# Force immediate backup
+curl -X POST "http://localhost:8001/backup/force"
+
+# Get backup status
+curl "http://localhost:8001/backup/status"
+
+# List backup versions
+curl "http://localhost:8001/backup/versions"
+
+# Cleanup old backups
+curl -X POST "http://localhost:8001/backup/cleanup"
+```
+
 ## ⚙️ **Configuration**
 
 | Variable | Default | Description |
