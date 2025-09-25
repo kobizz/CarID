@@ -86,51 +86,6 @@ class GCSStorage:
 
         return sorted(items)
 
-    def delete_image(self, blob_path: str) -> bool:
-        """Delete image from GCS bucket.
-
-        Args:
-            blob_path: Full path in bucket
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            blob = self.bucket.blob(blob_path)
-            blob.delete()
-            return True
-        except Exception:
-            return False
-
-    def image_exists(self, blob_path: str) -> bool:
-        """Check if image exists in GCS bucket.
-
-        Args:
-            blob_path: Full path in bucket
-
-        Returns:
-            True if exists, False otherwise
-        """
-        blob = self.bucket.blob(blob_path)
-        return blob.exists()
-
-    def get_signed_url(self, blob_path: str, expiration_minutes: int = 60) -> str:
-        """Get a signed URL for temporary access to an image.
-
-        Args:
-            blob_path: Full path in bucket
-            expiration_minutes: How long the URL should be valid
-
-        Returns:
-            Signed URL string
-        """
-        blob = self.bucket.blob(blob_path)
-        from datetime import timedelta
-        return blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(minutes=expiration_minutes),
-            method="GET",
-        )
 
 
 # Global instance

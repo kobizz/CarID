@@ -2,6 +2,7 @@ import uuid
 import base64
 import io
 import logging
+import re
 import sys
 
 from fastapi import HTTPException, Request, FastAPI
@@ -54,6 +55,81 @@ for logger_obj in [uvicorn_access_logger, uvicorn_error_logger, uvicorn_logger]:
 logger.info("Starting CarID service with timestamp logging enabled")
 
 app = FastAPI(title="CarID (OpenCLIP + FAISS + Negatives + Prototype Mode)")
+
+
+def validate_label(label: str) -> str:
+    """Validate and sanitize label input to prevent path traversal and injection attacks."""
+    if not label or not isinstance(label, str):
+        raise ValueError("Label must be a non-empty string")
+    
+    # Check length
+    if len(label) > 100:
+        raise ValueError("Label too long (max 100 characters)")
+    
+    # Remove dangerous characters and normalize
+    label = label.strip()
+    
+    # Check for path traversal attempts
+    if '..' in label or '/' in label or '\\' in label:
+        raise ValueError("Label contains invalid path characters")
+    
+    # Allow only alphanumeric, underscore, hyphen, and spaces (will be converted to underscore)
+    if not re.match(r'^[a-zA-Z0-9_\-\s]+$', label):
+        raise ValueError("Label contains invalid characters (only alphanumeric, underscore, hyphen, and spaces allowed)")
+    
+    # Convert to safe format
+    safe_label = label.lower().replace(' ', '_').replace('-', '_')
+    
+    # Remove multiple consecutive underscores
+    safe_label = re.sub(r'_{2,}', '_', safe_label)
+    
+    # Remove leading/trailing underscores
+    safe_label = safe_label.strip('_')
+    
+    if not safe_label:
+        raise ValueError("Label becomes empty after sanitization")
+    
+    return safe_label
+
+
+def validate_image_input(req) -> None:
+    """Validate image input for security and format compliance."""
+    # Check that exactly one image source is provided
+    if not req.image_b64 and not req.image_url:
+        raise ValueError("Must provide either image_b64 or image_url")
+    
+    if req.image_b64 and req.image_url:
+        raise ValueError("Provide only one of image_b64 or image_url, not both")
+    
+    # Validate base64 image if provided
+    if req.image_b64:
+        # Check for reasonable size limit (10MB in base64)
+        if len(req.image_b64) > 14_000_000:  # ~10MB in base64
+            raise ValueError("Image too large (max 10MB)")
+        
+        # Basic format validation for base64 images
+        if req.image_b64.startswith('data:'):
+            # Extract MIME type for data URLs
+            try:
+                header, _ = req.image_b64.split(',', 1)
+                if 'image/' not in header.lower():
+                    raise ValueError("Invalid image format in data URL")
+                
+                # Check for supported image types
+                allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+                if not any(img_type in header.lower() for img_type in allowed_types):
+                    raise ValueError("Unsupported image format (allowed: JPEG, PNG, WebP)")
+            except ValueError:
+                raise ValueError("Invalid data URL format")
+    
+    # Validate URL if provided  
+    if req.image_url:
+        # Basic URL validation
+        if not req.image_url.startswith(('http://', 'https://')):
+            raise ValueError("Image URL must use HTTP or HTTPS protocol")
+        
+        if len(req.image_url) > 2000:
+            raise ValueError("Image URL too long (max 2000 characters)")
 
 
 @app.get("/healthz")
@@ -120,17 +196,32 @@ def index_add(req: AddReq):
     """
     logger.info(f"Adding image to index - label: {req.label}, is_negative: {req.is_negative}")
 
+    # Validate inputs
+    try:
+        validate_image_input(req)
+        label = validate_label(req.label)
+    except ValueError as e:
+        logger.warning(f"Input validation failed: {e}")
+        raise HTTPException(status_code=400, detail=f"Input validation error: {e}")
+
     # Load image
     if req.image_b64:
-        pil = pil_from_b64(req.image_b64)
+        try:
+            pil = pil_from_b64(req.image_b64)
+        except Exception as e:
+            logger.warning(f"Failed to parse base64 image: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}")
     elif req.image_url:
-        pil = download_image(req.image_url)
-        logger.info(f"Downloaded image from URL: {req.image_url}")
+        try:
+            pil = download_image(req.image_url)
+            logger.info(f"Downloaded image from URL: {req.image_url}")
+        except Exception as e:
+            logger.warning(f"Failed to download image from URL: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
     else:
-        raise ValueError("Provide image_b64 or image_url")
+        raise HTTPException(status_code=400, detail="Provide image_b64 or image_url")
 
     # Save to storage
-    label = req.label.strip().lower().replace(" ", "_")
     folder_name = label if not req.is_negative else (
         label if label.startswith(NEG_PREFIX) else f"{NEG_PREFIX}{label}"
     )
@@ -183,16 +274,27 @@ def classify(req: ClassifyReq, request: Request):
     if dbg:
         logger.info("Debug mode enabled for this classification request")
 
-    # Load image
+    # Validate and load image
+    try:
+        validate_image_input(req)
+    except ValueError as e:
+        logger.warning(f"Classification input validation failed: {e}")
+        raise HTTPException(status_code=400, detail=f"Input validation error: {e}")
+
     if req.image_b64:
-        pil = pil_from_b64(req.image_b64)
+        try:
+            pil = pil_from_b64(req.image_b64)
+        except Exception as e:
+            logger.warning(f"Failed to parse base64 image: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}")
     elif req.image_url:
         try:
             pil = download_image(req.image_url)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"download_error: {e}") from e
+            logger.warning(f"Failed to download image from URL: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
     else:
-        raise ValueError("Provide image_b64 or image_url")
+        raise HTTPException(status_code=400, detail="Provide image_b64 or image_url")
 
     if req.crop_norm:
         x0 = max(0.0, min(1.0, float(req.crop_norm.get("x0", 0.0))))

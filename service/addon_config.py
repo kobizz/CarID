@@ -2,6 +2,7 @@ import json
 import base64
 import os
 import logging
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -52,12 +53,21 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
     try:
         gcs_json_str = base64.b64decode(gcs_json_b64).decode('utf-8')
 
+        # Validate JSON format before writing
         json.loads(gcs_json_str)
 
-        credentials_path = "/tmp/gcs-service-account.json"
-        with open(credentials_path, 'w', encoding="utf-8") as f:
-            f.write(gcs_json_str)
+        # Create secure temporary file with proper permissions
+        with tempfile.NamedTemporaryFile(
+            mode='w', 
+            suffix='.json', 
+            prefix='gcs-service-account-', 
+            delete=False,
+            encoding='utf-8'
+        ) as temp_file:
+            temp_file.write(gcs_json_str)
+            credentials_path = temp_file.name
 
+        # Set restrictive permissions (owner read/write only)
         os.chmod(credentials_path, 0o600)
 
         logger.info(

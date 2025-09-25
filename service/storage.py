@@ -14,6 +14,9 @@ from config import (
 )
 from ml_models import get_embed_dim
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # Backup state tracking
 _backup_state = {
@@ -147,22 +150,20 @@ def load_prototypes_with_fallback():
             return json.loads(PROTO_PATH.read_text())
 
         # If no local prototypes, try to restore from GCS backup
-        import logging
-        logging.info("Local prototypes not found, attempting to restore from GCS backup...")
+        logger.info("Local prototypes not found, attempting to restore from GCS backup...")
 
         prototypes = restore_prototypes_from_gcs()
         if prototypes:
             # Save restored prototypes locally for future fast access
             save_prototypes(prototypes, backup_to_gcs=False)
-            logging.info("✅ Successfully restored prototypes from GCS backup")
+            logger.info("✅ Successfully restored prototypes from GCS backup")
             return prototypes
 
-        logging.info("No prototypes backup found in GCS")
+        logger.info("No prototypes backup found in GCS")
         return {}
 
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to load prototypes with fallback: {e}")
+        logger.warning(f"Failed to load prototypes with fallback: {e}")
         return {}
 
 
@@ -199,8 +200,7 @@ def _backup_prototypes_to_gcs(prototypes: Dict[str, Dict[str, List[float] | int]
 
     except Exception as e:
         # Log but don't fail on backup errors
-        import logging
-        logging.warning(f"Failed to backup prototypes to GCS: {e}")
+        logger.warning(f"Failed to backup prototypes to GCS: {e}")
 
 
 def _backup_index_to_gcs(index_type: str, ix: faiss.Index, labels: List[str]):
@@ -248,8 +248,7 @@ def _backup_index_to_gcs(index_type: str, ix: faiss.Index, labels: List[str]):
 
     except Exception as e:
         # Log but don't fail on backup errors
-        import logging
-        logging.warning(f"Failed to backup {index_type} index to GCS: {e}")
+        logger.warning(f"Failed to backup {index_type} index to GCS: {e}")
 
 
 def _upload_file_to_gcs(gcs_storage, local_path: Path, gcs_path: str):
@@ -283,9 +282,6 @@ def _update_latest_index_pointer(gcs_storage, index_type: str, timestamp: str):
 def _cleanup_old_backups(gcs_storage, index_type: str):
     """Remove old backup versions, keeping only MAX_BACKUP_VERSIONS latest"""
     try:
-        import logging
-        logger = logging.getLogger(__name__)
-
         # Get all backup timestamps for this index type
         versions = list_index_versions(index_type)
 
@@ -318,16 +314,12 @@ def _cleanup_old_backups(gcs_storage, index_type: str):
             logger.info(f"Cleaned up {deleted_count} old {index_type} index backups, keeping {MAX_BACKUP_VERSIONS} latest")
 
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to cleanup old {index_type} backups: {e}")
+        logger.warning(f"Failed to cleanup old {index_type} backups: {e}")
 
 
 def _cleanup_old_prototype_backups(gcs_storage):
     """Remove old prototype backup versions, keeping only MAX_BACKUP_VERSIONS latest"""
     try:
-        import logging
-        logger = logging.getLogger(__name__)
-
         # Get all prototype backup timestamps
         versions = list_prototype_versions()
 
@@ -354,8 +346,7 @@ def _cleanup_old_prototype_backups(gcs_storage):
             logger.info(f"Cleaned up {deleted_count} old prototype backups, keeping {MAX_BACKUP_VERSIONS} latest")
 
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to cleanup old prototype backups: {e}")
+        logger.warning(f"Failed to cleanup old prototype backups: {e}")
 
 
 def restore_index_from_gcs(index_type: str, timestamp: Optional[str] = None) -> Optional[tuple]:
@@ -420,8 +411,7 @@ def restore_index_from_gcs(index_type: str, timestamp: Optional[str] = None) -> 
             return index, labels
 
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to restore {index_type} index from GCS: {e}")
+        logger.warning(f"Failed to restore {index_type} index from GCS: {e}")
         return None
 
 
@@ -432,8 +422,7 @@ def load_indexes_with_fallback():
         return load_indexes()
     except Exception:
         # Fallback to GCS restore
-        import logging
-        logging.info("Local indexes not found, attempting GCS restore...")
+        logger.info("Local indexes not found, attempting GCS restore...")
 
         pos_result = restore_index_from_gcs("positive")
         neg_result = restore_index_from_gcs("negative")
@@ -493,8 +482,7 @@ def restore_prototypes_from_gcs(timestamp: Optional[str] = None) -> Optional[Dic
             return prototypes
 
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to restore prototypes from GCS: {e}")
+        logger.warning(f"Failed to restore prototypes from GCS: {e}")
         return None
 
 
