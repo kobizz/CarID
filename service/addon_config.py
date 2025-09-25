@@ -75,7 +75,7 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
         )
         return credentials_path
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Error processing GCS service account JSON: {e}")
         return None
 

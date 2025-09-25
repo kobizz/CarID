@@ -122,8 +122,8 @@ def validate_image_input(req) -> None:
                 allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
                 if not any(img_type in header.lower() for img_type in allowed_types):
                     raise ValueError("Unsupported image format (allowed: JPEG, PNG, WebP)")
-            except ValueError:
-                raise ValueError("Invalid data URL format")
+            except ValueError as exc:
+                raise ValueError("Invalid data URL format") from exc
 
     # Validate URL if provided
     if req.image_url:
@@ -138,12 +138,12 @@ def validate_image_input(req) -> None:
 @app.get("/healthz")
 def healthz():
     logger.info("Health check requested")
-    from ml_models import clip_model
+    from ml_models import CLIP_MODEL_INSTANCE
 
     return {
         "ok": True,
         "prototype_mode": PROTOTYPE_MODE,
-        "model_loaded": clip_model is not None,
+        "model_loaded": CLIP_MODEL_INSTANCE is not None,
         "pos_count": 0 if index_pos is None else index_pos.ntotal,
         "neg_count": 0 if index_neg is None else index_neg.ntotal,
         "classes": labels_pos
@@ -162,7 +162,7 @@ def free_memory():
     unload_model()
 
     # Force garbage collection
-    import gc
+    import gc  # pylint: disable=import-outside-toplevel
     gc.collect()
 
     return {"ok": True, "message": "Model unloaded and memory freed"}
@@ -185,7 +185,7 @@ def index_reload():
         load_all()
         logger.info("Index reload completed successfully")
         return {"ok": True, "message": "Indexes reloaded from storage"}
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Index reload failed: {e}")
         return {"ok": False, "error": str(e)}
 
@@ -205,22 +205,22 @@ def index_add(req: AddReq):
         label = validate_label(req.label)
     except ValueError as e:
         logger.warning(f"Input validation failed: {e}")
-        raise HTTPException(status_code=400, detail=f"Input validation error: {e}")
+        raise HTTPException(status_code=400, detail=f"Input validation error: {e}") from e
 
     # Load image
     if req.image_b64:
         try:
             pil = pil_from_b64(req.image_b64)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Failed to parse base64 image: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}") from e
     elif req.image_url:
         try:
             pil = download_image(req.image_url)
             logger.info(f"Downloaded image from URL: {req.image_url}")
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Failed to download image from URL: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}") from e
     else:
         raise HTTPException(status_code=400, detail="Provide image_b64 or image_url")
 
@@ -282,20 +282,20 @@ def classify(req: ClassifyReq, request: Request):
         validate_image_input(req)
     except ValueError as e:
         logger.warning(f"Classification input validation failed: {e}")
-        raise HTTPException(status_code=400, detail=f"Input validation error: {e}")
+        raise HTTPException(status_code=400, detail=f"Input validation error: {e}") from e
 
     if req.image_b64:
         try:
             pil = pil_from_b64(req.image_b64)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Failed to parse base64 image: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid image data: {e}") from e
     elif req.image_url:
         try:
             pil = download_image(req.image_url)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Failed to download image from URL: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to download image: {e}") from e
     else:
         raise HTTPException(status_code=400, detail="Provide image_b64 or image_url")
 
@@ -308,8 +308,8 @@ def classify(req: ClassifyReq, request: Request):
             x1 = min(1.0, x0 + 1e-3)
         if y1 <= y0:
             y1 = min(1.0, y0 + 1e-3)
-        W, H = pil.width, pil.height
-        box = (int(x0 * W), int(y0 * H), int(x1 * W), int(y1 * H))
+        width, height = pil.width, pil.height
+        box = (int(x0 * width), int(y0 * height), int(x1 * width), int(y1 * height))
         pil = pil.crop(box)
 
     # Embed query

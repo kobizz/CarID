@@ -384,7 +384,7 @@ def _cleanup_old_prototype_backups(gcs_storage):
         logger.warning(f"Failed to cleanup old prototype backups: {e}")
 
 
-def restore_index_from_gcs(
+def restore_index_from_gcs(  # pylint: disable=too-many-locals
     index_type: str,
     timestamp: Optional[str] = None
 ) -> Optional[tuple]:

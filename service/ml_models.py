@@ -4,8 +4,8 @@ from config import DEVICE, CLIP_MODEL, CLIP_PRETRAIN
 logger = logging.getLogger(__name__)
 
 # Global variables for lazy loading
-clip_model = None
-preproc = None
+CLIP_MODEL_INSTANCE = None
+PREPROCESSOR = None
 EMBED_DIM = None
 
 # Known embedding dimensions for different models (avoids loading model just for dimension)
@@ -20,9 +20,9 @@ KNOWN_EMBED_DIMS = {
 
 def _load_model():
     """Lazy load the OpenCLIP model only when needed"""
-    global clip_model, preproc, EMBED_DIM
+    global CLIP_MODEL_INSTANCE, PREPROCESSOR, EMBED_DIM
 
-    if clip_model is not None:
+    if CLIP_MODEL_INSTANCE is not None:
         return  # Already loaded
 
     logger.info(f"Loading OpenCLIP {CLIP_MODEL}/{CLIP_PRETRAIN} on {DEVICE}...")
@@ -36,14 +36,14 @@ def _load_model():
     if DEVICE == "cpu":
         torch.set_num_threads(2)  # Reduce threading on RPi
 
-    clip_model, _, _ = open_clip.create_model_and_transforms(
+    CLIP_MODEL_INSTANCE, _, _ = open_clip.create_model_and_transforms(
         CLIP_MODEL, pretrained=CLIP_PRETRAIN, device=DEVICE
     )
-    clip_model.eval()
-    EMBED_DIM = clip_model.visual.output_dim
+    CLIP_MODEL_INSTANCE.eval()
+    EMBED_DIM = CLIP_MODEL_INSTANCE.visual.output_dim
 
     # Fast preprocessing (OpenCLIP normalization)
-    preproc = transforms.Compose([
+    PREPROCESSOR = transforms.Compose([
         transforms.Resize(256, interpolation=transforms.InterpolationMode.BICUBIC),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
@@ -61,13 +61,13 @@ def _load_model():
 def get_model():
     """Get the model, loading it if necessary"""
     _load_model()
-    return clip_model
+    return CLIP_MODEL_INSTANCE
 
 
 def get_preprocessor():
     """Get the preprocessor, loading it if necessary"""
     _load_model()
-    return preproc
+    return PREPROCESSOR
 
 
 def get_embed_dim():
@@ -83,14 +83,14 @@ def get_embed_dim():
 
 def unload_model():
     """Unload the model to free memory (if needed for maintenance)"""
-    global clip_model, preproc, EMBED_DIM
+    global CLIP_MODEL_INSTANCE, PREPROCESSOR, EMBED_DIM
 
-    if clip_model is not None:
+    if CLIP_MODEL_INSTANCE is not None:
         logger.info("Unloading OpenCLIP model to free memory")
-        del clip_model
-        del preproc
-        clip_model = None
-        preproc = None
+        del CLIP_MODEL_INSTANCE
+        del PREPROCESSOR
+        CLIP_MODEL_INSTANCE = None
+        PREPROCESSOR = None
         EMBED_DIM = None
 
         # Force garbage collection

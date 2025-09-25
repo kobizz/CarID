@@ -4,7 +4,7 @@ ignored-modules=faiss,torch,torchvision,open_clip
 
 [MESSAGES CONTROL]
 # Disable import-error for specific heavy dependencies and some style issues that are less critical
-disable=import-error,missing-module-docstring,missing-function-docstring,missing-class-docstring,logging-fstring-interpolation
+disable=import-error,missing-module-docstring,missing-function-docstring,missing-class-docstring,logging-fstring-interpolation,too-many-nested-blocks,broad-exception-caught,import-outside-toplevel,global-statement,too-many-locals,too-many-branches,too-many-statements,redefined-outer-name,reimported
 
 [DESIGN]
 # Allow reasonable complexity for ML/AI applications

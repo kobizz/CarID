@@ -31,7 +31,7 @@ def load_all():
 
     if PROTOTYPE_MODE:
         logger.info("Running in PROTOTYPE_MODE - loading prototypes")
-        prototypes = load_prototypes_with_fallback()
+        prototypes = load_prototypes_with_fallback()  # pylint: disable=redefined-outer-name
         logger.info(f"Loaded {len(prototypes)} prototype classes: {list(prototypes.keys())}")
 
         if prototypes:
@@ -46,9 +46,9 @@ def load_all():
                 mu = mu / max(1e-12, np.linalg.norm(mu))
                 vecs.append(mu[None, :])
             if vecs:
-                X = np.vstack(vecs).astype("float32")
-                index_pos = faiss.IndexFlatIP(X.shape[1])
-                index_pos.add(X)
+                vectors = np.vstack(vecs).astype("float32")
+                index_pos = faiss.IndexFlatIP(vectors.shape[1])
+                index_pos.add(vectors)
                 logger.info(f"Built positive index from prototypes: {index_pos.ntotal} vectors")
             else:
                 index_pos = None
@@ -112,13 +112,14 @@ def rebuild_index():
                 else:
                     pos_feats.append(vec)
                     pos_labels.append(label)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Skipping {path_or_blob}: {e}")
 
+    # pylint: disable=global-statement
     global index_pos, labels_pos, index_neg, prototypes
 
     if PROTOTYPE_MODE:
-        prototypes = {}
+        prototypes = {}  # pylint: disable=redefined-outer-name
         labels_pos = sorted(proto_accum.keys())
         vecs = []
         for lbl in labels_pos:
@@ -129,9 +130,9 @@ def rebuild_index():
             vecs.append(mu[None, :])
             prototypes[lbl] = {"sum": s.tolist(), "count": c}
         if vecs:
-            X = np.vstack(vecs).astype("float32")
-            index_pos = faiss.IndexFlatIP(X.shape[1])
-            index_pos.add(X)
+            vectors = np.vstack(vecs).astype("float32")
+            index_pos = faiss.IndexFlatIP(vectors.shape[1])
+            index_pos.add(vectors)
         else:
             index_pos = None
             labels_pos = []
@@ -143,16 +144,16 @@ def rebuild_index():
             index_pos = None
             labels_pos = []
         else:
-            X = np.vstack(pos_feats).astype("float32")
-            index_pos = faiss.IndexFlatIP(X.shape[1])
-            index_pos.add(X)
+            vectors = np.vstack(pos_feats).astype("float32")
+            index_pos = faiss.IndexFlatIP(vectors.shape[1])
+            index_pos.add(vectors)
             labels_pos = pos_labels
             save_pos_index(index_pos, labels_pos, force_backup=True)
 
     if neg_feats:
-        Xn = np.vstack(neg_feats).astype("float32")
-        index_neg = faiss.IndexFlatIP(Xn.shape[1])
-        index_neg.add(Xn)
+        negative_vectors = np.vstack(neg_feats).astype("float32")
+        index_neg = faiss.IndexFlatIP(negative_vectors.shape[1])
+        index_neg.add(negative_vectors)
         save_neg_index(index_neg, force_backup=True)
     else:
         index_neg = None
@@ -170,7 +171,7 @@ def rebuild_index():
 
 def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
     """Add a single vector to the appropriate index"""
-    global index_pos, labels_pos, index_neg
+    global index_pos, labels_pos, index_neg  # pylint: disable=global-statement
 
     if is_negative:
         if index_neg is None:
@@ -202,24 +203,23 @@ def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
             mu = mu / max(1e-12, np.linalg.norm(mu))
             vecs.append(mu[None, :])
         if vecs:
-            X = np.vstack(vecs).astype("float32")
-            index_pos = faiss.IndexFlatIP(X.shape[1])
-            index_pos.add(X)
+            vectors = np.vstack(vecs).astype("float32")
+            index_pos = faiss.IndexFlatIP(vectors.shape[1])
+            index_pos.add(vectors)
             save_pos_index(index_pos, labels_pos)
         else:
             index_pos = None
             labels_pos = []
         save_meta()
         return {"classes": labels_pos, "count": index_pos.ntotal if index_pos else 0}
-    else:
-        # Per-image mode: append vector + label
-        if index_pos is None:
-            index_pos = faiss.IndexFlatIP(get_embed_dim())
-        index_pos.add(vec)
-        labels_pos.append(label)
-        save_pos_index(index_pos, labels_pos)
-        save_meta()
-        return {"pos_count": index_pos.ntotal}
+    # Per-image mode: append vector + label
+    if index_pos is None:
+        index_pos = faiss.IndexFlatIP(get_embed_dim())
+    index_pos.add(vec)
+    labels_pos.append(label)
+    save_pos_index(index_pos, labels_pos)
+    save_meta()
+    return {"pos_count": index_pos.ntotal}
 
 
 def get_index_stats():
@@ -234,7 +234,7 @@ def get_index_stats():
             for label, _, is_neg in items:
                 if not is_neg:  # Only count positive samples
                     counts[label] = counts.get(label, 0) + 1
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             # If gallery scanning fails, return zeros
             for lbl in labels_pos:
                 counts[lbl] = 0
