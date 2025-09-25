@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 from config import PROTOTYPE_MODE
 from storage import (
     save_meta, save_pos_index, save_neg_index, save_prototypes,
-    load_indexes, load_prototypes
+    load_indexes, load_prototypes, load_indexes_with_fallback,
+    load_prototypes_with_fallback, force_backup_now, get_backup_status
 )
 from image_utils import list_gallery, embed_image, load_image
 from ml_models import get_embed_dim
@@ -26,8 +27,13 @@ def load_all():
     """Load persisted artifacts; build pos index from prototypes if needed."""
     global index_pos, labels_pos, index_neg, prototypes
 
+    logger.info("Loading indexes and prototypes...")
+
     if PROTOTYPE_MODE:
-        prototypes = load_prototypes()
+        logger.info("Running in PROTOTYPE_MODE - loading prototypes")
+        prototypes = load_prototypes_with_fallback()
+        logger.info(f"Loaded {len(prototypes)} prototype classes: {list(prototypes.keys())}")
+        
         if prototypes:
             # Build index from prototypes
             labels_pos = sorted(prototypes.keys())
@@ -43,17 +49,37 @@ def load_all():
                 X = np.vstack(vecs).astype("float32")
                 index_pos = faiss.IndexFlatIP(X.shape[1])
                 index_pos.add(X)
+                logger.info(f"Built positive index from prototypes: {index_pos.ntotal} vectors")
             else:
                 index_pos = None
                 labels_pos = []
+                logger.warning("No valid vectors generated from prototypes")
         else:
             index_pos = None
             labels_pos = []
+            logger.info("No prototypes found - positive index will be empty")
     else:
-        index_pos, labels_pos, _ = load_indexes()
+        logger.info("Running in PER-IMAGE mode - loading indexes directly")
+        all_indexes = load_indexes_with_fallback()
+        index_pos, labels_pos, index_neg = all_indexes
+        if index_pos:
+            logger.info(f"Loaded positive index: {index_pos.ntotal} vectors, {len(labels_pos)} labels")
+        else:
+            logger.info("No positive index found")
 
-    # Load negative index
-    _, _, index_neg = load_indexes()
+    # Load negative index (only if not already loaded above)
+    if PROTOTYPE_MODE:
+        _, _, index_neg = load_indexes_with_fallback()
+    
+    if index_neg:
+        logger.info(f"Loaded negative index: {index_neg.ntotal} vectors")
+    else:
+        logger.info("No negative index found")
+
+    # Summary
+    pos_count = 0 if index_pos is None else index_pos.ntotal
+    neg_count = 0 if index_neg is None else index_neg.ntotal
+    logger.info(f"Index loading complete: {pos_count} positive, {neg_count} negative vectors")
 
 
 def rebuild_index():
@@ -109,7 +135,7 @@ def rebuild_index():
             labels_pos = []
         save_prototypes(prototypes)
         if index_pos is not None:
-            save_pos_index(index_pos, labels_pos)
+            save_pos_index(index_pos, labels_pos, force_backup=True)
     else:
         if not pos_feats:
             index_pos = None
@@ -119,16 +145,16 @@ def rebuild_index():
             index_pos = faiss.IndexFlatIP(X.shape[1])
             index_pos.add(X)
             labels_pos = pos_labels
-            save_pos_index(index_pos, labels_pos)
+            save_pos_index(index_pos, labels_pos, force_backup=True)
 
     if neg_feats:
         Xn = np.vstack(neg_feats).astype("float32")
         index_neg = faiss.IndexFlatIP(Xn.shape[1])
         index_neg.add(Xn)
-        save_neg_index(index_neg)
+        save_neg_index(index_neg, force_backup=True)
     else:
         index_neg = None
-        save_neg_index(None)
+        save_neg_index(None, force_backup=True)
 
     save_meta()
     return {

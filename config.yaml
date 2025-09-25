@@ -1,7 +1,7 @@
 name: CarID (OpenCLIP retrieval)
 slug: carid
-version: "0.11.1"
-description: Self-hosted image classifier (OpenCLIP + FAISS). CPU-only by default.
+version: "0.3.3"
+description: Self-hosted image classifier (OpenCLIP + FAISS) with smart backup system. CPU-only by default.
 arch:
   - aarch64
   - amd64
@@ -28,6 +28,13 @@ options:
   # Google Cloud Storage configuration (mandatory)
   gcs_bucket_name: "carid-trained-images"
   gcs_service_account_json: ""  # Base64-encoded service account JSON
+  
+  # Backup configuration (new in v0.3.0)
+  enable_gcs_backup: true
+  backup_on_single_add: false
+  backup_batch_size: 10
+  backup_interval_minutes: 30
+  max_backup_versions: 3
 
 # Validation (new schema style)
 schema:
@@ -40,3 +47,10 @@ schema:
   # GCS configuration validation (mandatory)
   gcs_bucket_name: str
   gcs_service_account_json: "str?"
+  
+  # Backup configuration validation
+  enable_gcs_backup: bool
+  backup_on_single_add: bool
+  backup_batch_size: "int(1,)"
+  backup_interval_minutes: "int(1,)"
+  max_backup_versions: "int(1,)"

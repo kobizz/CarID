@@ -15,8 +15,9 @@ from models import ClassifyReq, ClassifyResp, AddReq
 from image_utils import pil_from_b64, download_image, embed_image, split_label, save_image
 from index_manager import (
     index_pos, labels_pos, index_neg,
-    rebuild_index, add_to_index, get_index_stats, search_indexes
+    rebuild_index, add_to_index, get_index_stats, search_indexes, load_all
 )
+from storage import force_backup_now, get_backup_status, cleanup_old_backups_all, list_index_versions, list_prototype_versions
 from ml_models import unload_model
 
 # Configure logging with timestamps
@@ -95,6 +96,19 @@ def index_rebuild():
     return result
 
 
+@app.post("/index/reload")
+def index_reload():
+    """Manually reload indexes from local/GCS storage without rebuilding from images"""
+    logger.info("Index reload requested")
+    try:
+        load_all()
+        logger.info("Index reload completed successfully")
+        return {"ok": True, "message": "Indexes reloaded from storage"}
+    except Exception as e:
+        logger.error(f"Index reload failed: {e}")
+        return {"ok": False, "error": str(e)}
+
+
 @app.post("/index/add")
 def index_add(req: AddReq):
     """Append a single image to positives/negatives WITHOUT full rebuild.
@@ -137,8 +151,27 @@ def classify(req: ClassifyReq, request: Request):
     logger.info("Classification request received")
     
     if index_pos is None or (index_pos.ntotal == 0):
-        logger.error("Index not built - cannot perform classification")
-        raise RuntimeError("Index not built; POST /index/rebuild first and/or add images.")
+        # Get current status for better error message
+        from index_manager import get_index_stats
+        stats = get_index_stats()
+        
+        if PROTOTYPE_MODE:
+            error_msg = (
+                "No index available for classification. In PROTOTYPE_MODE, you need to either:\n"
+                "1. Add images via POST /index/add (recommended for individual images)\n"
+                "2. Upload images to your GCS bucket and run POST /index/rebuild\n"
+                f"Current status: {stats['class_counts']} prototype classes"
+            )
+        else:
+            error_msg = (
+                "No index available for classification. In PER-IMAGE mode, you need to either:\n"
+                "1. Add images via POST /index/add (recommended for individual images)\n"
+                "2. Upload images to your GCS bucket and run POST /index/rebuild\n"
+                f"Current status: {stats.get('pos_count', 0)} positive images indexed"
+            )
+        
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
     # Parse debug flag (either body.debug or ?debug=1)
     dbg = bool(req.debug) or (
@@ -242,3 +275,84 @@ def classify(req: ClassifyReq, request: Request):
         label=top1_lbl, make=make, model=model, score=float(top1_sim),
         accepted=True, topk=ranked[:k], debug=debug_obj, cropped_b64=cropped_b64
     )
+
+
+@app.post("/backup/force")
+def force_backup():
+    """Force an immediate backup of current indexes to GCS"""
+    logger.info("Manual backup requested")
+    result = force_backup_now()
+    logger.info(f"Manual backup completed: {result}")
+    return result
+
+
+@app.get("/backup/status") 
+def backup_status():
+    """Get current backup status and configuration"""
+    return get_backup_status()
+
+
+@app.post("/backup/cleanup")
+def cleanup_backups():
+    """Manually cleanup old backups, keeping only MAX_BACKUP_VERSIONS latest"""
+    logger.info("Manual backup cleanup requested")
+    result = cleanup_old_backups_all()
+    logger.info(f"Manual backup cleanup completed: {result}")
+    return result
+
+
+@app.get("/backup/versions")
+def list_backup_versions():
+    """List all available backup versions for all backup types"""
+    return {
+        "positive": list_index_versions("positive"),
+        "negative": list_index_versions("negative"),
+        "prototypes": list_prototype_versions()
+    }
+
+
+@app.get("/index/status")
+def index_status():
+    """Get current index status - useful for debugging classification issues"""
+    from index_manager import index_pos, index_neg, labels_pos, prototypes
+    
+    status = {
+        "ready_for_classification": index_pos is not None and index_pos.ntotal > 0,
+        "prototype_mode": PROTOTYPE_MODE,
+        "positive_index": {
+            "exists": index_pos is not None,
+            "vector_count": 0 if index_pos is None else index_pos.ntotal,
+            "label_count": len(labels_pos)
+        },
+        "negative_index": {
+            "exists": index_neg is not None,
+            "vector_count": 0 if index_neg is None else index_neg.ntotal
+        }
+    }
+    
+    if PROTOTYPE_MODE:
+        status["prototypes"] = {
+            "class_count": len(prototypes),
+            "classes": list(prototypes.keys()),
+            "total_samples": sum(proto.get("count", 0) for proto in prototypes.values())
+        }
+    else:
+        status["labels"] = {
+            "unique_labels": len(set(labels_pos)),
+            "total_samples": len(labels_pos),
+            "label_distribution": {label: labels_pos.count(label) for label in set(labels_pos)}
+        }
+    
+    return status
+
+
+@app.get("/index/stats")
+def index_stats():
+    """Get detailed index statistics including backup status"""
+    basic_stats = get_index_stats()
+    backup_info = get_backup_status()
+    
+    return {
+        **basic_stats,
+        "backup_status": backup_info
+    }

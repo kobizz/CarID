@@ -32,6 +32,13 @@ NEG_ACCEPT_CAP = float(os.getenv("NEG_ACCEPT_CAP", "0.80"))
 
 NEG_PREFIX = os.getenv("NEG_PREFIX", "_")
 PROTOTYPE_MODE = os.getenv("PROTOTYPE_MODE", "true").lower() in ("1", "true", "yes")
+ENABLE_GCS_BACKUP = os.getenv("ENABLE_GCS_BACKUP", "true").lower() in ("1", "true", "yes")
+
+# Backup optimization settings
+BACKUP_ON_SINGLE_ADD = os.getenv("BACKUP_ON_SINGLE_ADD", "false").lower() in ("1", "true", "yes")
+BACKUP_BATCH_SIZE = int(os.getenv("BACKUP_BATCH_SIZE", "10"))  # Backup every N additions
+BACKUP_INTERVAL_MINUTES = int(os.getenv("BACKUP_INTERVAL_MINUTES", "30"))  # Backup every N minutes
+MAX_BACKUP_VERSIONS = int(os.getenv("MAX_BACKUP_VERSIONS", "3"))  # Keep only N latest backup versions
 
 # Persisted files
 INDEX_PATH = DATA_DIR / "index.faiss"          # positives

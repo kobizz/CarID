@@ -1,4 +1,4 @@
-.PHONY: dev start sync test flake8 pylint mypy bandit safety lint check format clean help
+.PHONY: dev start sync test flake8 pylint mypy bandit safety lint check format clean bump help
 
 # Default target
 help:
@@ -6,6 +6,7 @@ help:
 	@echo "  dev     - Start FastAPI server in development mode (auto-reload)"
 	@echo "  start   - Start FastAPI server in production mode"
 	@echo "  sync    - Sync local project with HA instance"
+	@echo "  bump    - Bump version and sync (defaults to patch; usage: make bump [VERSION=1.2.3|patch|minor|major])"
 	@echo "  test    - Run tests with pytest"
 	@echo "  flake8  - Run flake8 linter"
 	@echo "  pylint  - Run pylint linter"
@@ -68,4 +69,13 @@ clean:
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
+
+# Bump version and sync to HA
+bump:
+	$(eval VERSION ?= patch)
+	@echo "Bumping version ($(VERSION))..."
+	@python3 scripts/bump_version.py $(VERSION)
+	@echo "Syncing to Home Assistant..."
+	@make sync
+	@echo "✅ Version bump and sync completed!"
 
