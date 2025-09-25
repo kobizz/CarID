@@ -3,7 +3,6 @@ import base64
 import io
 import logging
 import sys
-from datetime import datetime
 
 from fastapi import HTTPException, Request, FastAPI
 
@@ -17,7 +16,10 @@ from index_manager import (
     index_pos, labels_pos, index_neg,
     rebuild_index, add_to_index, get_index_stats, search_indexes, load_all
 )
-from storage import force_backup_now, get_backup_status, cleanup_old_backups_all, list_index_versions, list_prototype_versions
+from storage import (
+    force_backup_now, get_backup_status, cleanup_old_backups_all,
+    list_index_versions, list_prototype_versions
+)
 from ml_models import unload_model
 
 # Configure logging with timestamps
@@ -58,7 +60,7 @@ app = FastAPI(title="CarID (OpenCLIP + FAISS + Negatives + Prototype Mode)")
 def healthz():
     logger.info("Health check requested")
     from ml_models import clip_model
-    
+
     return {
         "ok": True,
         "prototype_mode": PROTOTYPE_MODE,
@@ -69,8 +71,8 @@ def healthz():
     }
 
 
-@app.get("/index/stats")
-def index_stats():
+@app.get("/index/basic-stats")
+def basic_index_stats():
     return get_index_stats()
 
 
@@ -79,11 +81,11 @@ def free_memory():
     """Free model memory (useful for maintenance or memory pressure)"""
     logger.info("Memory cleanup requested")
     unload_model()
-    
+
     # Force garbage collection
     import gc
     gc.collect()
-    
+
     return {"ok": True, "message": "Model unloaded and memory freed"}
 
 
@@ -117,7 +119,7 @@ def index_add(req: AddReq):
        Also saves the image to the gallery on disk.
     """
     logger.info(f"Adding image to index - label: {req.label}, is_negative: {req.is_negative}")
-    
+
     # Load image
     if req.image_b64:
         pil = pil_from_b64(req.image_b64)
@@ -149,12 +151,12 @@ def index_add(req: AddReq):
 @app.post("/classify", response_model=ClassifyResp)
 def classify(req: ClassifyReq, request: Request):
     logger.info("Classification request received")
-    
+
     if index_pos is None or (index_pos.ntotal == 0):
         # Get current status for better error message
         from index_manager import get_index_stats
         stats = get_index_stats()
-        
+
         if PROTOTYPE_MODE:
             error_msg = (
                 "No index available for classification. In PROTOTYPE_MODE, you need to either:\n"
@@ -169,7 +171,7 @@ def classify(req: ClassifyReq, request: Request):
                 "2. Upload images to your GCS bucket and run POST /index/rebuild\n"
                 f"Current status: {stats.get('pos_count', 0)} positive images indexed"
             )
-        
+
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
@@ -177,7 +179,7 @@ def classify(req: ClassifyReq, request: Request):
     dbg = bool(req.debug) or (
         request.query_params.get("debug", "").lower() in ("1", "true", "yes", "on")
     )
-    
+
     if dbg:
         logger.info("Debug mode enabled for this classification request")
 
@@ -264,13 +266,19 @@ def classify(req: ClassifyReq, request: Request):
         cropped_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
     if not accepted:
-        logger.info(f"Classification rejected - label: {top1_lbl}, score: {top1_sim:.3f}, conditions: thr={cond_thr}, margin={cond_margin}, neg_cap={cond_negcap}")
+        logger.info(
+            f"Classification rejected - label: {top1_lbl}, score: {top1_sim:.3f}, "
+            f"conditions: thr={cond_thr}, margin={cond_margin}, neg_cap={cond_negcap}"
+        )
         return ClassifyResp(
             label=None, make=None, model=None, score=float(top1_sim),
             accepted=False, topk=ranked[:k], debug=debug_obj, cropped_b64=cropped_b64
         )
 
-    logger.info(f"Classification accepted - label: {top1_lbl}, make: {make}, model: {model}, score: {top1_sim:.3f}")
+    logger.info(
+        f"Classification accepted - label: {top1_lbl}, make: {make}, "
+        f"model: {model}, score: {top1_sim:.3f}"
+    )
     return ClassifyResp(
         label=top1_lbl, make=make, model=model, score=float(top1_sim),
         accepted=True, topk=ranked[:k], debug=debug_obj, cropped_b64=cropped_b64
@@ -286,7 +294,7 @@ def force_backup():
     return result
 
 
-@app.get("/backup/status") 
+@app.get("/backup/status")
 def backup_status():
     """Get current backup status and configuration"""
     return get_backup_status()
@@ -315,7 +323,7 @@ def list_backup_versions():
 def index_status():
     """Get current index status - useful for debugging classification issues"""
     from index_manager import index_pos, index_neg, labels_pos, prototypes
-    
+
     status = {
         "ready_for_classification": index_pos is not None and index_pos.ntotal > 0,
         "prototype_mode": PROTOTYPE_MODE,
@@ -329,7 +337,7 @@ def index_status():
             "vector_count": 0 if index_neg is None else index_neg.ntotal
         }
     }
-    
+
     if PROTOTYPE_MODE:
         status["prototypes"] = {
             "class_count": len(prototypes),
@@ -342,7 +350,7 @@ def index_status():
             "total_samples": len(labels_pos),
             "label_distribution": {label: labels_pos.count(label) for label in set(labels_pos)}
         }
-    
+
     return status
 
 
@@ -351,7 +359,7 @@ def index_stats():
     """Get detailed index statistics including backup status"""
     basic_stats = get_index_stats()
     backup_info = get_backup_status()
-    
+
     return {
         **basic_stats,
         "backup_status": backup_info

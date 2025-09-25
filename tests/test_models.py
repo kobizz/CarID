@@ -1,5 +1,4 @@
 """Test cases for Pydantic models"""
-import pytest
 from service.models import ClassifyReq, ClassifyResp, AddReq
 
 
@@ -34,7 +33,7 @@ def test_classify_response():
     resp = ClassifyResp(
         label="test_category",
         make="test",
-        model="category", 
+        model="category",
         score=0.95,
         accepted=True,
         topk=[("test_category", 0.95)],

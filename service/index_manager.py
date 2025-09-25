@@ -4,16 +4,16 @@ import logging
 import numpy as np
 import faiss
 
-logger = logging.getLogger(__name__)
-
 from config import PROTOTYPE_MODE
 from storage import (
     save_meta, save_pos_index, save_neg_index, save_prototypes,
-    load_indexes, load_prototypes, load_indexes_with_fallback,
-    load_prototypes_with_fallback, force_backup_now, get_backup_status
+    load_indexes_with_fallback,
+    load_prototypes_with_fallback
 )
 from image_utils import list_gallery, embed_image, load_image
 from ml_models import get_embed_dim
+
+logger = logging.getLogger(__name__)
 
 
 # ---------- Globals (indexes) ----------
@@ -33,7 +33,7 @@ def load_all():
         logger.info("Running in PROTOTYPE_MODE - loading prototypes")
         prototypes = load_prototypes_with_fallback()
         logger.info(f"Loaded {len(prototypes)} prototype classes: {list(prototypes.keys())}")
-        
+
         if prototypes:
             # Build index from prototypes
             labels_pos = sorted(prototypes.keys())
@@ -63,14 +63,16 @@ def load_all():
         all_indexes = load_indexes_with_fallback()
         index_pos, labels_pos, index_neg = all_indexes
         if index_pos:
-            logger.info(f"Loaded positive index: {index_pos.ntotal} vectors, {len(labels_pos)} labels")
+            logger.info(
+                f"Loaded positive index: {index_pos.ntotal} vectors, {len(labels_pos)} labels"
+            )
         else:
             logger.info("No positive index found")
 
     # Load negative index (only if not already loaded above)
     if PROTOTYPE_MODE:
         _, _, index_neg = load_indexes_with_fallback()
-    
+
     if index_neg:
         logger.info(f"Loaded negative index: {index_neg.ntotal} vectors")
     else:

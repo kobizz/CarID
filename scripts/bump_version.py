@@ -15,7 +15,7 @@ def get_current_version():
     pyproject_path = Path('pyproject.toml')
     if not pyproject_path.exists():
         raise FileNotFoundError("pyproject.toml not found")
-    
+
     with open(pyproject_path, 'r') as f:
         content = f.read()
         match = re.search(r'version = "([^"]+)"', content)
@@ -30,7 +30,7 @@ def bump_semantic_version(current, bump_type):
         major, minor, patch = map(int, current.split('.'))
     except ValueError:
         raise ValueError(f"Invalid semantic version format: {current}")
-    
+
     if bump_type == 'patch':
         patch += 1
     elif bump_type == 'minor':
@@ -42,7 +42,7 @@ def bump_semantic_version(current, bump_type):
         patch = 0
     else:
         raise ValueError(f"Invalid bump type: {bump_type}")
-    
+
     return f"{major}.{minor}.{patch}"
 
 
@@ -51,17 +51,17 @@ def update_version_in_file(filename, new_version):
     filepath = Path(filename)
     if not filepath.exists():
         raise FileNotFoundError(f"{filename} not found")
-    
+
     with open(filepath, 'r') as f:
         content = f.read()
-    
+
     if filename == 'pyproject.toml':
         content = re.sub(r'version = "[^"]+"', f'version = "{new_version}"', content)
     elif filename == 'config.yaml':
         content = re.sub(r'version: "[^"]+"', f'version: "{new_version}"', content)
     else:
         raise ValueError(f"Unsupported file type: {filename}")
-    
+
     with open(filepath, 'w') as f:
         f.write(content)
 

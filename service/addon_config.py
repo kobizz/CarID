@@ -44,7 +44,10 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
         logger.info("No gcs_service_account_json found in addon config")
         return None
 
-    logger.info(f"Found base64 service account JSON in addon config (length: {len(gcs_json_b64)} chars)")
+    logger.info(
+        f"Found base64 service account JSON in addon config "
+        f"(length: {len(gcs_json_b64)} chars)"
+    )
 
     try:
         gcs_json_str = base64.b64decode(gcs_json_b64).decode('utf-8')
@@ -57,7 +60,9 @@ def get_gcs_credentials_from_addon() -> Optional[str]:
 
         os.chmod(credentials_path, 0o600)
 
-        logger.info(f"Using GCS credentials from addon configuration (base64) -> {credentials_path}")
+        logger.info(
+            f"Using GCS credentials from addon configuration (base64) -> {credentials_path}"
+        )
         return credentials_path
 
     except Exception as e:
