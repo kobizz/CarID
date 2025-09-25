@@ -69,7 +69,12 @@ def save_meta():
     }))
 
 
-def save_pos_index(ix: faiss.Index, labels: List[str], backup_to_gcs: bool = None, force_backup: bool = False):
+def save_pos_index(
+    ix: faiss.Index, 
+    labels: List[str], 
+    backup_to_gcs: bool = None, 
+    force_backup: bool = False
+):
     # Save locally for fast access
     faiss.write_index(ix, str(INDEX_PATH))
     LABELS_PATH.write_text(json.dumps(labels, ensure_ascii=False))
@@ -87,7 +92,11 @@ def save_pos_index(ix: faiss.Index, labels: List[str], backup_to_gcs: bool = Non
         _mark_addition()
 
 
-def save_neg_index(ix: Optional[faiss.Index], backup_to_gcs: bool = None, force_backup: bool = False):
+def save_neg_index(
+    ix: Optional[faiss.Index], 
+    backup_to_gcs: bool = None, 
+    force_backup: bool = False
+):
     if ix is None:
         if NEG_INDEX_PATH.exists():
             NEG_INDEX_PATH.unlink()
@@ -109,7 +118,10 @@ def save_neg_index(ix: Optional[faiss.Index], backup_to_gcs: bool = None, force_
         _mark_addition()
 
 
-def save_prototypes(proto: Dict[str, Dict[str, List[float] | int]], backup_to_gcs: bool = None):
+def save_prototypes(
+    proto: Dict[str, Dict[str, List[float] | int]], 
+    backup_to_gcs: bool = None
+):
     PROTO_PATH.write_text(json.dumps(proto))  # raw sums+counts
 
     # Smart backup logic for prototypes
@@ -150,7 +162,9 @@ def load_prototypes_with_fallback():
             return json.loads(PROTO_PATH.read_text())
 
         # If no local prototypes, try to restore from GCS backup
-        logger.info("Local prototypes not found, attempting to restore from GCS backup...")
+        logger.info(
+            "Local prototypes not found, attempting to restore from GCS backup..."
+        )
 
         prototypes = restore_prototypes_from_gcs()
         if prototypes:
@@ -190,7 +204,11 @@ def _backup_prototypes_to_gcs(prototypes: Dict[str, Dict[str, List[float] | int]
 
             # Upload to GCS
             gcs = get_gcs_storage()
-            _upload_file_to_gcs(gcs, compressed_proto_path, f"indexes/prototypes_{timestamp}.json.gz")
+            _upload_file_to_gcs(
+                gcs, 
+                compressed_proto_path, 
+                f"indexes/prototypes_{timestamp}.json.gz"
+            )
 
             # Update latest pointer
             _update_latest_prototypes_pointer(gcs, timestamp)
@@ -218,7 +236,9 @@ def _backup_index_to_gcs(index_type: str, ix: faiss.Index, labels: List[str]):
             faiss.write_index(ix, str(temp_index_path))
 
             # Compress index
-            compressed_index_path = temp_dir_path / f"{index_type}_index_{timestamp}.faiss.gz"
+            compressed_index_path = (
+                temp_dir_path / f"{index_type}_index_{timestamp}.faiss.gz"
+            )
             with open(temp_index_path, 'rb') as f_in:
                 with gzip.open(compressed_index_path, 'wb') as f_out:
                     f_out.writelines(f_in)
@@ -234,11 +254,19 @@ def _backup_index_to_gcs(index_type: str, ix: faiss.Index, labels: List[str]):
             gcs = get_gcs_storage()
 
             # Upload compressed index
-            _upload_file_to_gcs(gcs, compressed_index_path, f"indexes/{index_type}_index_{timestamp}.faiss.gz")
+            _upload_file_to_gcs(
+                gcs, 
+                compressed_index_path, 
+                f"indexes/{index_type}_index_{timestamp}.faiss.gz"
+            )
 
             # Upload labels if provided
             if labels:
-                _upload_file_to_gcs(gcs, labels_path, f"indexes/{index_type}_labels_{timestamp}.json.gz")
+                _upload_file_to_gcs(
+                    gcs, 
+                    labels_path, 
+                    f"indexes/{index_type}_labels_{timestamp}.json.gz"
+                )
 
             # Update latest symlink
             _update_latest_index_pointer(gcs, index_type, timestamp)
@@ -308,10 +336,15 @@ def _cleanup_old_backups(gcs_storage, index_type: str):
                     labels_blob.delete()
 
             except Exception as e:
-                logger.warning(f"Failed to delete backup {timestamp} for {index_type}: {e}")
+                logger.warning(
+                    f"Failed to delete backup {timestamp} for {index_type}: {e}"
+                )
 
         if deleted_count > 0:
-            logger.info(f"Cleaned up {deleted_count} old {index_type} index backups, keeping {MAX_BACKUP_VERSIONS} latest")
+            logger.info(
+                f"Cleaned up {deleted_count} old {index_type} index backups, "
+                f"keeping {MAX_BACKUP_VERSIONS} latest"
+            )
 
     except Exception as e:
         logger.warning(f"Failed to cleanup old {index_type} backups: {e}")
@@ -343,13 +376,19 @@ def _cleanup_old_prototype_backups(gcs_storage):
                 logger.warning(f"Failed to delete prototype backup {timestamp}: {e}")
 
         if deleted_count > 0:
-            logger.info(f"Cleaned up {deleted_count} old prototype backups, keeping {MAX_BACKUP_VERSIONS} latest")
+            logger.info(
+                f"Cleaned up {deleted_count} old prototype backups, "
+                f"keeping {MAX_BACKUP_VERSIONS} latest"
+            )
 
     except Exception as e:
         logger.warning(f"Failed to cleanup old prototype backups: {e}")
 
 
-def restore_index_from_gcs(index_type: str, timestamp: Optional[str] = None) -> Optional[tuple]:
+def restore_index_from_gcs(
+    index_type: str, 
+    timestamp: Optional[str] = None
+) -> Optional[tuple]:
     """Restore FAISS index from GCS backup
 
     Args:
@@ -515,7 +554,10 @@ def list_index_versions(index_type: str) -> List[str]:
         from gcs_storage import get_gcs_storage
         gcs = get_gcs_storage()
 
-        blobs = gcs.client.list_blobs(gcs.bucket_name, prefix=f"indexes/{index_type}_index_")
+        blobs = gcs.client.list_blobs(
+            gcs.bucket_name, 
+            prefix=f"indexes/{index_type}_index_"
+        )
         timestamps = []
 
         for blob in blobs:
@@ -599,20 +641,26 @@ def cleanup_old_backups_all() -> Dict[str, any]:
                 for timestamp in versions_to_delete:
                     try:
                         # Delete index file
-                        index_blob_path = f"indexes/{index_type}_index_{timestamp}.faiss.gz"
+                        index_blob_path = (
+                            f"indexes/{index_type}_index_{timestamp}.faiss.gz"
+                        )
                         index_blob = gcs.bucket.blob(index_blob_path)
                         if index_blob.exists():
                             index_blob.delete()
                             deleted_count += 1
 
                         # Delete labels file if it exists
-                        labels_blob_path = f"indexes/{index_type}_labels_{timestamp}.json.gz"
+                        labels_blob_path = (
+                            f"indexes/{index_type}_labels_{timestamp}.json.gz"
+                        )
                         labels_blob = gcs.bucket.blob(labels_blob_path)
                         if labels_blob.exists():
                             labels_blob.delete()
 
                     except Exception as e:
-                        results["errors"].append(f"Failed to delete {index_type} backup {timestamp}: {e}")
+                        results["errors"].append(
+                            f"Failed to delete {index_type} backup {timestamp}: {e}"
+                        )
 
                 results[index_type]["cleaned"] = deleted_count
                 results[index_type]["kept"] = MAX_BACKUP_VERSIONS
@@ -641,7 +689,9 @@ def cleanup_old_backups_all() -> Dict[str, any]:
                             deleted_count += 1
 
                     except Exception as e:
-                        results["errors"].append(f"Failed to delete prototypes backup {timestamp}: {e}")
+                        results["errors"].append(
+                            f"Failed to delete prototypes backup {timestamp}: {e}"
+                        )
 
                 results["prototypes"]["cleaned"] = deleted_count
                 results["prototypes"]["kept"] = MAX_BACKUP_VERSIONS
@@ -671,7 +721,10 @@ def get_backup_status() -> Dict[str, any]:
         backup_versions = {"positive": 0, "negative": 0, "prototypes": 0}
 
     return {
-        "last_backup_time": _backup_state["last_backup_time"].isoformat() if _backup_state["last_backup_time"] else None,
+        "last_backup_time": (
+            _backup_state["last_backup_time"].isoformat() 
+            if _backup_state["last_backup_time"] else None
+        ),
         "additions_since_backup": _backup_state["additions_since_backup"],
         "pending_backup": _backup_state["pending_backup"],
         "backup_versions": backup_versions,
@@ -683,7 +736,9 @@ def get_backup_status() -> Dict[str, any]:
             "max_backup_versions": MAX_BACKUP_VERSIONS
         },
         "next_backup_triggers": {
-            "batch_threshold": f"{_backup_state['additions_since_backup']}/{BACKUP_BATCH_SIZE}",
+            "batch_threshold": (
+                f"{_backup_state['additions_since_backup']}/{BACKUP_BATCH_SIZE}"
+            ),
             "time_threshold": f"Every {BACKUP_INTERVAL_MINUTES} minutes"
         }
     }
