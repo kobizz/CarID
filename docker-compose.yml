@@ -11,8 +11,8 @@ services:
 
       # Models / hardware
       DEVICE: "${DEVICE:-cpu}"                 # "cuda" if you have a GPU
-      CLIP_MODEL: "${CLIP_MODEL:-ViT-B-32}"
-      CLIP_PRETRAIN: "${CLIP_PRETRAIN:-laion2b_s34b_b79k}"
+      CLIP_MODEL: "${CLIP_MODEL:-RN50}"
+      CLIP_PRETRAIN: "${CLIP_PRETRAIN:-openai}" # best quality (may show QuickGELU warning)
 
       # Indexing behavior
       PROTOTYPE_MODE: "${PROTOTYPE_MODE:-true}"        # true = per-class centroid, false = per-image index

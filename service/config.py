@@ -21,8 +21,8 @@ GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "carid-trained-images")
 GCS_CREDENTIALS_PATH = os.getenv("GCS_CREDENTIALS_PATH", None)  # Path to service account JSON
 
 DEVICE = os.getenv("DEVICE", "cpu")
-CLIP_MODEL = os.getenv("CLIP_MODEL", "ViT-B-32")
-CLIP_PRETRAIN = os.getenv("CLIP_PRETRAIN", "laion2b_s34b_b79k")
+CLIP_MODEL = os.getenv("CLIP_MODEL", "RN50")  # Optimized for RPi5: faster CNN vs ViT
+CLIP_PRETRAIN = os.getenv("CLIP_PRETRAIN", "openai")  # OpenAI weights, best quality (may show QuickGELU warning)
 
 
 TOPK = int(os.getenv("TOPK", "5"))
@@ -41,7 +41,7 @@ BACKUP_INTERVAL_MINUTES = int(os.getenv("BACKUP_INTERVAL_MINUTES", "30"))  # Bac
 MAX_BACKUP_VERSIONS = int(os.getenv("MAX_BACKUP_VERSIONS", "3"))  # Keep N latest backups
 
 # Image preprocessing settings
-JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "85"))
+JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "87"))  # Optimal quality for 653x432+ images
 
 # Persisted files
 INDEX_PATH = DATA_DIR / "index.faiss"          # positives

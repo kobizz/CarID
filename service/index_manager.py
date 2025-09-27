@@ -86,6 +86,33 @@ def load_all():
 
 def rebuild_index():
     """Recompute positive index (and prototypes if enabled) + negative index from GCS storage."""
+    # Declare globals at the top
+    global index_pos, labels_pos, index_neg, prototypes
+    
+    # Check for dimension mismatch and auto-clear if needed
+    current_dim = get_embed_dim()
+    
+    if PROTOTYPE_MODE:
+        old_prototypes = load_prototypes_with_fallback()
+        if old_prototypes:
+            # Check if any prototype has wrong dimensions
+            for label, proto_data in old_prototypes.items():
+                if "sum" in proto_data and len(proto_data["sum"]) != current_dim:
+                    logger.warning(
+                        f"Dimension mismatch detected: stored prototype has {len(proto_data['sum'])} dims, "
+                        f"current model needs {current_dim} dims. Auto-clearing old data..."
+                    )
+                    clear_all_data()
+                    break
+    else:
+        # Check existing positive index dimensions
+        if index_pos is not None and index_pos.d != current_dim:
+            logger.warning(
+                f"Dimension mismatch detected: existing index has {index_pos.d} dims, "
+                f"current model needs {current_dim} dims. Auto-clearing old data..."
+            )
+            clear_all_data()
+    
     items = list_gallery()
     if not items:
         return {"ok": False, "error": "Gallery empty (no images found in GCS bucket)"}
@@ -114,9 +141,6 @@ def rebuild_index():
                     pos_labels.append(label)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Skipping {path_or_blob}: {e}")
-
-    # pylint: disable=global-statement
-    global index_pos, labels_pos, index_neg, prototypes
 
     if PROTOTYPE_MODE:
         prototypes = {}  # pylint: disable=redefined-outer-name
@@ -220,6 +244,29 @@ def add_to_index(label: str, vec: np.ndarray, is_negative: bool) -> Dict:
     save_pos_index(index_pos, labels_pos)
     save_meta()
     return {"pos_count": index_pos.ntotal}
+
+
+def clear_all_data():
+    """Clear all stored prototypes and indexes (useful when changing model dimensions)"""
+    global index_pos, labels_pos, index_neg, prototypes
+    
+    from storage import save_prototypes, save_pos_index, save_neg_index, save_meta
+    
+    logger.info("Clearing all stored data...")
+    
+    # Clear storage
+    save_prototypes({})  # Empty prototypes
+    save_pos_index(None, [])  # Clear positive index
+    save_neg_index(None)  # Clear negative index
+    save_meta()  # Update metadata
+    
+    # Clear in-memory globals
+    index_pos = None
+    labels_pos = []
+    index_neg = None
+    prototypes = {}
+    
+    logger.info("All data cleared successfully")
 
 
 def get_index_stats():

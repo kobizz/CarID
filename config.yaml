@@ -1,6 +1,6 @@
 name: CarID (OpenCLIP retrieval)
 slug: carid
-version: "0.3.10"
+version: "0.3.17"
 description: Self-hosted image classifier (OpenCLIP + FAISS) with smart backup system. CPU-only by default.
 arch:
   - aarch64

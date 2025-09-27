@@ -34,7 +34,12 @@ def _load_model():
 
     # Memory optimization: set thread count for CPU
     if DEVICE == "cpu":
-        torch.set_num_threads(2)  # Reduce threading on RPi
+        try:
+            torch.set_num_threads(2)  # Conservative threading for stability
+            torch.set_num_interop_threads(1)  # Reduce inter-op parallelism  
+        except RuntimeError as e:
+            logger.warning(f"Could not set PyTorch threading: {e}")
+            # Continue anyway - threading settings are optimization, not critical
 
     CLIP_MODEL_INSTANCE, _, _ = open_clip.create_model_and_transforms(
         CLIP_MODEL, pretrained=CLIP_PRETRAIN, device=DEVICE
