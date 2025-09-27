@@ -36,7 +36,7 @@ def _load_model():
     if DEVICE == "cpu":
         try:
             torch.set_num_threads(2)  # Conservative threading for stability
-            torch.set_num_interop_threads(1)  # Reduce inter-op parallelism  
+            torch.set_num_interop_threads(1)  # Reduce inter-op parallelism
         except RuntimeError as e:
             logger.warning(f"Could not set PyTorch threading: {e}")
             # Continue anyway - threading settings are optimization, not critical

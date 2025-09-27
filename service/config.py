@@ -22,7 +22,7 @@ GCS_CREDENTIALS_PATH = os.getenv("GCS_CREDENTIALS_PATH", None)  # Path to servic
 
 DEVICE = os.getenv("DEVICE", "cpu")
 CLIP_MODEL = os.getenv("CLIP_MODEL", "RN50")  # Optimized for RPi5: faster CNN vs ViT
-CLIP_PRETRAIN = os.getenv("CLIP_PRETRAIN", "openai")  # OpenAI weights, best quality (may show QuickGELU warning)
+CLIP_PRETRAIN = os.getenv("CLIP_PRETRAIN", "openai")  # OpenAI weights, best quality
 
 
 TOPK = int(os.getenv("TOPK", "5"))

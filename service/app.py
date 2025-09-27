@@ -5,7 +5,7 @@ import logging
 import re
 import sys
 
-from fastapi import HTTPException, Request, FastAPI
+from fastapi import HTTPException, FastAPI
 from PIL import Image
 
 from config import (
@@ -244,7 +244,7 @@ def index_add(req: AddReq):
 
 
 @app.post("/classify", response_model=ClassifyResp)
-def classify(req: ClassifyReq, request: Request):
+def classify(req: ClassifyReq):
     logger.info("Classification request received")
 
     if index_pos is None or (index_pos.ntotal == 0):
@@ -308,12 +308,12 @@ def classify(req: ClassifyReq, request: Request):
     # Convert to JPEG format before classification for consistent preprocessing
     # Use request-specific quality or fall back to config default
     jpeg_quality = req.jpeg_quality if req.jpeg_quality is not None else JPEG_QUALITY
-    
+
     # Validate JPEG quality parameter
     if jpeg_quality < 1 or jpeg_quality > 100:
         logger.warning(f"Invalid JPEG quality: {jpeg_quality}, using default: {JPEG_QUALITY}")
         jpeg_quality = JPEG_QUALITY
-    
+
     jpeg_buf = io.BytesIO()
     pil.save(jpeg_buf, "JPEG", quality=jpeg_quality)
     jpeg_bytes = jpeg_buf.getvalue()  # Save JPEG bytes for potential reuse
@@ -355,7 +355,7 @@ def classify(req: ClassifyReq, request: Request):
     debug_obj = None
     if req.debug:
         logger.info("Debug mode enabled for this classification request")
-  
+
         debug_obj = {
             "top1_label": top1_lbl,
             "top1_sim": top1_sim,
