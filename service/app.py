@@ -6,6 +6,7 @@ import re
 import sys
 
 from fastapi import HTTPException, Request, FastAPI
+from PIL import Image
 
 from config import (
     NEG_PREFIX, TOPK, ACCEPT_THRESHOLD,
@@ -312,6 +313,13 @@ def classify(req: ClassifyReq, request: Request):
         box = (int(x0 * width), int(y0 * height), int(x1 * width), int(y1 * height))
         pil = pil.crop(box)
 
+    # Convert to JPEG format before classification for consistent preprocessing
+    jpeg_buf = io.BytesIO()
+    pil.save(jpeg_buf, "JPEG", quality=90)
+    jpeg_bytes = jpeg_buf.getvalue()  # Save JPEG bytes for potential reuse
+    jpeg_buf.seek(0)
+    pil = Image.open(jpeg_buf).convert("RGB")
+
     # Embed query
     q = embed_image(pil)
 
@@ -366,9 +374,7 @@ def classify(req: ClassifyReq, request: Request):
 
     cropped_b64 = None
     if req.return_cropped_b64:
-        buf = io.BytesIO()
-        pil.save(buf, "JPEG", quality=90)
-        cropped_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        cropped_b64 = base64.b64encode(jpeg_bytes).decode("ascii")
 
     if not accepted:
         logger.info(
