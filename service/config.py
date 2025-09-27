@@ -40,6 +40,9 @@ BACKUP_BATCH_SIZE = int(os.getenv("BACKUP_BATCH_SIZE", "10"))  # Backup every N 
 BACKUP_INTERVAL_MINUTES = int(os.getenv("BACKUP_INTERVAL_MINUTES", "30"))  # Backup every N minutes
 MAX_BACKUP_VERSIONS = int(os.getenv("MAX_BACKUP_VERSIONS", "3"))  # Keep N latest backups
 
+# Image preprocessing settings
+JPEG_QUALITY = int(os.getenv("JPEG_QUALITY", "85"))
+
 # Persisted files
 INDEX_PATH = DATA_DIR / "index.faiss"          # positives
 LABELS_PATH = DATA_DIR / "labels.json"         # order of positives

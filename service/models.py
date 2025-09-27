@@ -11,6 +11,7 @@ class ClassifyReq(BaseModel):
     debug: Optional[bool] = False
     crop_norm: Optional[Dict[str, float]] = None  # {"x0":0.80,"y0":0.40,"x1":1.0,"y1":0.65}
     return_cropped_b64: Optional[bool] = False
+    jpeg_quality: Optional[int] = None  # JPEG quality 1-100, defaults to config JPEG_QUALITY
 
 
 class ClassifyResp(BaseModel):

@@ -10,7 +10,7 @@ from PIL import Image
 
 from config import (
     NEG_PREFIX, TOPK, ACCEPT_THRESHOLD,
-    MARGIN_THRESHOLD, NEG_ACCEPT_CAP, PROTOTYPE_MODE
+    MARGIN_THRESHOLD, NEG_ACCEPT_CAP, PROTOTYPE_MODE, JPEG_QUALITY
 )
 from models import ClassifyReq, ClassifyResp, AddReq
 from image_utils import pil_from_b64, download_image, embed_image, split_label, save_image
@@ -270,14 +270,6 @@ def classify(req: ClassifyReq, request: Request):
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
-    # Parse debug flag (either body.debug or ?debug=1)
-    dbg = bool(req.debug) or (
-        request.query_params.get("debug", "").lower() in ("1", "true", "yes", "on")
-    )
-
-    if dbg:
-        logger.info("Debug mode enabled for this classification request")
-
     # Validate and load image
     try:
         validate_image_input(req)
@@ -314,8 +306,16 @@ def classify(req: ClassifyReq, request: Request):
         pil = pil.crop(box)
 
     # Convert to JPEG format before classification for consistent preprocessing
+    # Use request-specific quality or fall back to config default
+    jpeg_quality = req.jpeg_quality if req.jpeg_quality is not None else JPEG_QUALITY
+    
+    # Validate JPEG quality parameter
+    if jpeg_quality < 1 or jpeg_quality > 100:
+        logger.warning(f"Invalid JPEG quality: {jpeg_quality}, using default: {JPEG_QUALITY}")
+        jpeg_quality = JPEG_QUALITY
+    
     jpeg_buf = io.BytesIO()
-    pil.save(jpeg_buf, "JPEG", quality=90)
+    pil.save(jpeg_buf, "JPEG", quality=jpeg_quality)
     jpeg_bytes = jpeg_buf.getvalue()  # Save JPEG bytes for potential reuse
     jpeg_buf.seek(0)
     pil = Image.open(jpeg_buf).convert("RGB")
@@ -353,7 +353,9 @@ def classify(req: ClassifyReq, request: Request):
     make, model = split_label(top1_lbl)
 
     debug_obj = None
-    if dbg:
+    if req.debug:
+        logger.info("Debug mode enabled for this classification request")
+  
         debug_obj = {
             "top1_label": top1_lbl,
             "top1_sim": top1_sim,
@@ -369,7 +371,9 @@ def classify(req: ClassifyReq, request: Request):
             },
             "prototype_mode": PROTOTYPE_MODE,
             "pos_index_size": 0 if index_pos is None else index_pos.ntotal,
-            "neg_index_size": 0 if index_neg is None else index_neg.ntotal
+            "neg_index_size": 0 if index_neg is None else index_neg.ntotal,
+            "jpeg_quality_used": jpeg_quality,
+            "jpeg_bytes_size": len(jpeg_bytes)
         }
 
     cropped_b64 = None

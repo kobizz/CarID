@@ -18,6 +18,9 @@ services:
       PROTOTYPE_MODE: "${PROTOTYPE_MODE:-true}"        # true = per-class centroid, false = per-image index
       NEG_PREFIX: "${NEG_PREFIX:-_}"               # folders starting with this are treated as negatives
 
+      # Image preprocessing
+      JPEG_QUALITY: "${JPEG_QUALITY:-85}"              # JPEG quality for preprocessing (75-95, optimal: 85-90 for large crops)
+
       # Google Cloud Storage configuration (mandatory)
       GCS_BUCKET_NAME: "${GCS_BUCKET_NAME:-carid-trained-images}"
       GCS_CREDENTIALS_PATH: "${GCS_CREDENTIALS_PATH:-/app/gcs-key.json}"
