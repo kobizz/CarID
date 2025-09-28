@@ -14,6 +14,7 @@ from config import (
 )
 from models import ClassifyReq, ClassifyResp, AddReq
 from image_utils import pil_from_b64, download_image, embed_image, split_label, save_image
+from ml_models import embed_multimodal
 from index_manager import (
     index_pos, labels_pos, index_neg,
     rebuild_index, add_to_index, get_index_stats, search_indexes, load_all
@@ -320,12 +321,26 @@ def classify(req: ClassifyReq):
     jpeg_buf.seek(0)
     pil = Image.open(jpeg_buf).convert("RGB")
 
-    # Embed query
-    q = embed_image(pil)
-
-    # Search indexes
     k = req.topk or TOPK
-    ranked, neg_top = search_indexes(q, k)
+    
+    # Compute embedding and search based on whether text query is provided
+    if req.text_query:
+        # For debug comparison, we need both image-only and multimodal results
+        if req.debug:
+            q_image = embed_image(pil)
+            ranked_image_only, neg_top_image_only = search_indexes(q_image, k)
+        else:
+            ranked_image_only, neg_top_image_only = None, None
+            
+        # Compute multimodal embedding and search
+        q = embed_multimodal(pil, req.text_query)
+        logger.info(f"Using multimodal embedding with text: '{req.text_query}'")
+        ranked, neg_top = search_indexes(q, k)
+    else:
+        # No text query - use standard image-only embedding
+        q = embed_image(pil)
+        ranked, neg_top = search_indexes(q, k)
+        ranked_image_only, neg_top_image_only = None, None
 
     if not ranked:
         logger.warning("No results found in classification search")
@@ -356,6 +371,51 @@ def classify(req: ClassifyReq):
     if req.debug:
         logger.info("Debug mode enabled for this classification request")
 
+        # Embedding comparison analysis
+        embedding_analysis = None
+        if req.text_query and ranked_image_only:
+            # Compare image-only vs multimodal results
+            img_top1_lbl, img_top1_sim = ranked_image_only[0]
+            img_top2_sim = ranked_image_only[1][1] if len(ranked_image_only) > 1 else 0.0
+            
+            # Calculate ranking changes
+            img_labels = [item[0] for item in ranked_image_only]
+            multimodal_labels = [item[0] for item in ranked]
+            
+            # Find rank changes for top results
+            rank_changes = {}
+            for i, label in enumerate(multimodal_labels[:3]):  # Top 3
+                img_rank = img_labels.index(label) if label in img_labels else -1
+                if img_rank != -1:
+                    rank_changes[label] = {
+                        "image_only_rank": img_rank + 1,
+                        "multimodal_rank": i + 1,
+                        "rank_change": img_rank - i  # positive = improved with text
+                    }
+            
+            embedding_analysis = {
+                "image_only_results": {
+                    "top1_label": img_top1_lbl,
+                    "top1_sim": img_top1_sim,
+                    "top2_sim": img_top2_sim,
+                    "neg_top": neg_top_image_only,
+                    "topk": ranked_image_only[:k]
+                },
+                "multimodal_results": {
+                    "top1_label": top1_lbl,
+                    "top1_sim": top1_sim,
+                    "top2_sim": top2_sim,
+                    "neg_top": neg_top,
+                    "topk": ranked[:k]
+                },
+                "text_influence": {
+                    "winner_changed": img_top1_lbl != top1_lbl,
+                    "score_delta": top1_sim - img_top1_sim,
+                    "neg_score_delta": neg_top - neg_top_image_only,
+                    "rank_changes": rank_changes
+                }
+            }
+
         debug_obj = {
             "top1_label": top1_lbl,
             "top1_sim": top1_sim,
@@ -373,7 +433,9 @@ def classify(req: ClassifyReq):
             "pos_index_size": 0 if index_pos is None else index_pos.ntotal,
             "neg_index_size": 0 if index_neg is None else index_neg.ntotal,
             "jpeg_quality_used": jpeg_quality,
-            "jpeg_bytes_size": len(jpeg_bytes)
+            "jpeg_bytes_size": len(jpeg_bytes),
+            "text_query": req.text_query,
+            "embedding_analysis": embedding_analysis
         }
 
     cropped_b64 = None

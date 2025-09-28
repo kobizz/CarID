@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 # Global variables for lazy loading
 CLIP_MODEL_INSTANCE = None
 PREPROCESSOR = None
+TOKENIZER = None
 EMBED_DIM = None
 
 # Known embedding dimensions for different models (avoids loading model just for dimension)
@@ -20,7 +21,7 @@ KNOWN_EMBED_DIMS = {
 
 def _load_model():
     """Lazy load the OpenCLIP model only when needed"""
-    global CLIP_MODEL_INSTANCE, PREPROCESSOR, EMBED_DIM
+    global CLIP_MODEL_INSTANCE, PREPROCESSOR, TOKENIZER, EMBED_DIM
 
     if CLIP_MODEL_INSTANCE is not None:
         return  # Already loaded
@@ -46,6 +47,9 @@ def _load_model():
     )
     CLIP_MODEL_INSTANCE.eval()
     EMBED_DIM = CLIP_MODEL_INSTANCE.visual.output_dim
+
+    # Load tokenizer for text encoding
+    TOKENIZER = open_clip.get_tokenizer(CLIP_MODEL)
 
     # Fast preprocessing (OpenCLIP normalization)
     PREPROCESSOR = transforms.Compose([
@@ -75,6 +79,12 @@ def get_preprocessor():
     return PREPROCESSOR
 
 
+def get_tokenizer():
+    """Get the tokenizer, loading it if necessary"""
+    _load_model()
+    return TOKENIZER
+
+
 def get_embed_dim():
     """Get the embedding dimension without loading the full model if possible"""
     # Try to get known dimension first to avoid loading model
@@ -88,17 +98,59 @@ def get_embed_dim():
 
 def unload_model():
     """Unload the model to free memory (if needed for maintenance)"""
-    global CLIP_MODEL_INSTANCE, PREPROCESSOR, EMBED_DIM
+    global CLIP_MODEL_INSTANCE, PREPROCESSOR, TOKENIZER, EMBED_DIM
 
     if CLIP_MODEL_INSTANCE is not None:
         logger.info("Unloading OpenCLIP model to free memory")
         del CLIP_MODEL_INSTANCE
         del PREPROCESSOR
+        if TOKENIZER is not None:
+            del TOKENIZER
         CLIP_MODEL_INSTANCE = None
         PREPROCESSOR = None
+        TOKENIZER = None
         EMBED_DIM = None
 
         # Force garbage collection
         import gc
         gc.collect()
         logger.info("Model unloaded successfully")
+
+
+def embed_text(text: str):
+    """Encode text using OpenCLIP"""
+    import torch
+    import numpy as np
+    
+    tokenizer = get_tokenizer()
+    model = get_model()
+    
+    with torch.no_grad():
+        text_tokens = tokenizer([text]).to(DEVICE)
+        text_features = model.encode_text(text_tokens)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        return text_features.cpu().numpy().astype("float32")
+
+
+def embed_multimodal(image, text: str = None, text_weight: float = 0.3):
+    """Create multimodal embedding combining image and optional text context"""
+    import numpy as np
+    
+    # Always embed the image
+    from image_utils import embed_image
+    image_features = embed_image(image)  # (1, D)
+    
+    if text is None:
+        return image_features
+    
+    # Embed text
+    text_features = embed_text(text)  # (1, D)
+    
+    # Combine with weighted average
+    # Higher text_weight = more influence from text context
+    combined = ((1 - text_weight) * image_features + 
+                text_weight * text_features)
+    
+    # Re-normalize
+    combined = combined / np.linalg.norm(combined, axis=-1, keepdims=True)
+    return combined.astype("float32")
