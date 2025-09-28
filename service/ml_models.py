@@ -1,6 +1,8 @@
 import logging
 from config import DEVICE, CLIP_MODEL, CLIP_PRETRAIN
 
+# pylint: disable=cyclic-import  # Acceptable pattern for ML model utilities
+
 logger = logging.getLogger(__name__)
 
 # Global variables for lazy loading
@@ -120,13 +122,12 @@ def unload_model():
 def embed_text(text: str):
     """Encode text using OpenCLIP"""
     import torch
-    import numpy as np
-    
+
     tokenizer = get_tokenizer()
     model = get_model()
-    
+
     with torch.no_grad():
-        text_tokens = tokenizer([text]).to(DEVICE)
+        text_tokens = tokenizer([text]).to(DEVICE)  # pylint: disable=not-callable
         text_features = model.encode_text(text_tokens)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
         return text_features.cpu().numpy().astype("float32")
@@ -135,22 +136,22 @@ def embed_text(text: str):
 def embed_multimodal(image, text: str = None, text_weight: float = 0.3):
     """Create multimodal embedding combining image and optional text context"""
     import numpy as np
-    
-    # Always embed the image
+
+    # Always embed the image (import here to avoid cyclic imports)
     from image_utils import embed_image
     image_features = embed_image(image)  # (1, D)
-    
+
     if text is None:
         return image_features
-    
+
     # Embed text
     text_features = embed_text(text)  # (1, D)
-    
+
     # Combine with weighted average
     # Higher text_weight = more influence from text context
-    combined = ((1 - text_weight) * image_features + 
-                text_weight * text_features)
-    
+    combined = ((1 - text_weight) * image_features
+                + text_weight * text_features)
+
     # Re-normalize
     combined = combined / np.linalg.norm(combined, axis=-1, keepdims=True)
     return combined.astype("float32")

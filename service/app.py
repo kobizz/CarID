@@ -14,7 +14,7 @@ from config import (
 )
 from models import ClassifyReq, ClassifyResp, AddReq
 from image_utils import pil_from_b64, download_image, embed_image, split_label, save_image
-from ml_models import embed_multimodal
+from ml_models import embed_multimodal, unload_model
 from index_manager import (
     index_pos, labels_pos, index_neg,
     rebuild_index, add_to_index, get_index_stats, search_indexes, load_all
@@ -23,7 +23,6 @@ from storage import (
     force_backup_now, get_backup_status, cleanup_old_backups_all,
     list_index_versions, list_prototype_versions
 )
-from ml_models import unload_model
 
 # Configure logging with timestamps
 logging.basicConfig(
@@ -322,7 +321,7 @@ def classify(req: ClassifyReq):
     pil = Image.open(jpeg_buf).convert("RGB")
 
     k = req.topk or TOPK
-    
+
     # Compute embedding and search based on whether text query is provided
     if req.text_query:
         # For debug comparison, we need both image-only and multimodal results
@@ -331,7 +330,7 @@ def classify(req: ClassifyReq):
             ranked_image_only, neg_top_image_only = search_indexes(q_image, k)
         else:
             ranked_image_only, neg_top_image_only = None, None
-            
+
         # Compute multimodal embedding and search
         q = embed_multimodal(pil, req.text_query)
         logger.info(f"Using multimodal embedding with text: '{req.text_query}'")
@@ -377,11 +376,11 @@ def classify(req: ClassifyReq):
             # Compare image-only vs multimodal results
             img_top1_lbl, img_top1_sim = ranked_image_only[0]
             img_top2_sim = ranked_image_only[1][1] if len(ranked_image_only) > 1 else 0.0
-            
+
             # Calculate ranking changes
             img_labels = [item[0] for item in ranked_image_only]
             multimodal_labels = [item[0] for item in ranked]
-            
+
             # Find rank changes for top results
             rank_changes = {}
             for i, label in enumerate(multimodal_labels[:3]):  # Top 3
@@ -392,7 +391,7 @@ def classify(req: ClassifyReq):
                         "multimodal_rank": i + 1,
                         "rank_change": img_rank - i  # positive = improved with text
                     }
-            
+
             embedding_analysis = {
                 "image_only_results": {
                     "top1_label": img_top1_lbl,
